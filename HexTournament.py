@@ -369,7 +369,7 @@ if __name__ == "__main__":
     for p in sorted(glob("agents/Group*/cmd.txt"), key=extract_group_number):
         with open(p, "r") as f:
             agent = f.read().split("\n")[0].strip()
-            if p.split("/")[1] != agent.split(".")[1]:
+            if p.split("\\")[1] != agent.split(".")[1]: # was p.split("/")[1]
                 print(
                     f"Agent location {agent} does not match group number for path {p}, agent will not be loaded."
                 )

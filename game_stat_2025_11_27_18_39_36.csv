@@ -1,0 +1,7 @@
+player,matches,wins,win_rate,total_move_time,total_moves,average_move_time,illegal_moves_loss,time_out_loss,regular_loss
+Group1,10,2,0.2,0.0,45,0.0,8,0,0
+Group2,10,0,0.0,0.0,10,0.0,10,0,0
+Group20,10,7,0.7,0.0,42,0.0,3,0,0
+Group997,10,7,0.7,0.0,50,0.0,3,0,0
+Group998,10,7,0.7,0.0,48,0.0,3,0,0
+Group999,10,7,0.7,0.0,50,0.0,3,0,0
