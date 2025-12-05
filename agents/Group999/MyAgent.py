@@ -24,8 +24,6 @@ class MyAgent(AgentBase):
         self._choices = [
             (i, j) for i in range(self._board_size) for j in range(self._board_size)
         ]
-        
-        self.legal_moves_count = self._board_size * self._board_size
 
     def make_move(self, turn: int, board: Board, opp_move: Move | None) -> Move:
         """The game engine will call this method to request a move from the agent.
@@ -42,11 +40,6 @@ class MyAgent(AgentBase):
         Returns:
             Move: The agent's move
         """
-        if opp_move is not None:
-            coord = (opp_move._x, opp_move._y)
-            if coord in self._choices:
-                self._choices.remove(coord)
-
 
         # if turn == 2 and choice([0, 1]) == 1:
         if turn == 2:
@@ -54,5 +47,3 @@ class MyAgent(AgentBase):
         else:
             x, y = choice(self._choices)
             return Move(x, y)
-        
-
