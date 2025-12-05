@@ -4,7 +4,6 @@ import random
 
 class Node:
 
-    
     def __init__(self, state, parent=None):
         self.parent = parent              
         self.visits = 0

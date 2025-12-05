@@ -46,13 +46,12 @@ class MyAgent(AgentBase):
             coord = (opp_move._x, opp_move._y)
             if coord in self._choices:
                 self._choices.remove(coord)
+                self.legal_moves_count -= 1
 
+        self.MCTS(self._choices,board)
+    
 
-        # if turn == 2 and choice([0, 1]) == 1:
-        if turn == 2:
-            return Move(-1, -1)
-        else:
-            x, y = choice(self._choices)
-            return Move(x, y)
-        
-
+    def MCTS(self,choices,board):
+        for choice in choices:
+            pass
+    
