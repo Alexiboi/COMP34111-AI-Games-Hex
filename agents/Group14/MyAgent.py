@@ -4,6 +4,7 @@ from src.AgentBase import AgentBase
 from src.Board import Board
 from src.Colour import Colour
 from src.Move import Move
+from Node import Node
 
 
 class MyAgent(AgentBase):
@@ -15,7 +16,7 @@ class MyAgent(AgentBase):
     You must implement the make_move method to make the agent functional.
     You CANNOT modify the AgentBase class, otherwise your agent might not function.
     """
-
+    _iterations: int = 100
     _choices: list[Move]
     _board_size: int = 11
 
@@ -42,16 +43,24 @@ class MyAgent(AgentBase):
         Returns:
             Move: The agent's move
         """
+
+        #Remove moves made by other player
         if opp_move is not None:
             coord = (opp_move._x, opp_move._y)
             if coord in self._choices:
                 self._choices.remove(coord)
                 self.legal_moves_count -= 1
 
-        self.MCTS(self._choices,board)
+        #Find best move
+        best_move = self.MCTS(self._choices,board)
+        #Remove moves made by agent
+        self._choices.remove(best_move)
     
 
     def MCTS(self,choices,board):
-        for choice in choices:
-            pass
+         root = Node(board.copy(),self.colour,choices, move=None,parent=None)
+         for i in range(self._iterations):
+            node = root
+            board_state = board.copy()
+            
     
