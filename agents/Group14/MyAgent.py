@@ -1,11 +1,11 @@
-from random import choice, random
-
+#from random import choice, random
+import random
 from src.AgentBase import AgentBase
 from src.Board import Board
 from src.Colour import Colour
 from src.Move import Move
-from . import Node
-
+#from . import Node
+from .Node import Node
 
 class MyAgent(AgentBase):
     """This class describes the default Hex agent. It will randomly send a
@@ -62,15 +62,18 @@ class MyAgent(AgentBase):
 
         #Remove moves made by other player
         if opp_move is not None:
-            coord = (opp_move._x, opp_move._y)
+            coord = opp_move._x, opp_move._y 
             if coord in self._choices:
                 self._choices.remove(coord)
                 self.legal_moves_count -= 1
 
         #Find best move
         best_move = self.MCTS(self._choices,board)
+        
         #Remove moves made by agent
         self._choices.remove(best_move)
+        best_move = Move(_x = best_move[0], _y = best_move[1])
+        return best_move
     
 
     def MCTS(self,choices,board):
@@ -90,7 +93,7 @@ class MyAgent(AgentBase):
             #Add an extra child
             if node.untried_moves:
                 move = random.choice(node.untried_moves)
-                next_colour = Colour.RED if node.colour == Colour.BLUE else Colour.BLUE
+                next_colour = self.opp_colour()
                 board_state.set_tile_colour(move[0], move[1], node.colour)
                 child = node.expand(self.copy_board(board_state), next_colour, move)
                 node = child
@@ -103,7 +106,7 @@ class MyAgent(AgentBase):
 
             for legal_move in rollout_moves:
                 board_state.set_tile_colour(legal_move[0], legal_move[1], rollout_colour) #Colour random legal move
-                rollout_colour = Colour.RED if rollout_colour == Colour.BLUE else Colour.BLUE #Switch colours for next random move
+                rollout_colour = self.opp_colour()
 
                 if board_state.has_ended(rollout_colour): #Check if game has ended
                     break
@@ -112,7 +115,7 @@ class MyAgent(AgentBase):
             winner = board_state.get_winner()
             node.backpropagation(winner)
 
-        #Return most visited node. 
+        #Return most visited node
         best_child = max(root.child_nodes, key=lambda c: c.visits)
         return best_child.move
             
