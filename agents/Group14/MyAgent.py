@@ -1,10 +1,10 @@
-from random import choice
+from random import choice, random
 
 from src.AgentBase import AgentBase
 from src.Board import Board
 from src.Colour import Colour
 from src.Move import Move
-from Node import Node
+from . import Node
 
 
 class MyAgent(AgentBase):
@@ -28,6 +28,19 @@ class MyAgent(AgentBase):
         
         self.legal_moves_count = self._board_size * self._board_size
 
+
+    #COPY BOARD THROUGH AGENT, move if it is allowed to copy board through Board
+    def copy_board(self, board: Board) -> Board:
+        new_board = Board(board.size)
+
+        for x in range(board.size):
+            for y in range(board.size):
+                new_board.set_tile_colour(x, y, board.tiles[x][y].colour)
+
+        return new_board
+    
+
+
     def make_move(self, turn: int, board: Board, opp_move: Move | None) -> Move:
         """The game engine will call this method to request a move from the agent.
         If the agent is to make the first move, opp_move will be None.
@@ -43,6 +56,9 @@ class MyAgent(AgentBase):
         Returns:
             Move: The agent's move
         """
+        #SWAP i guess
+        if turn == 1:
+            pass
 
         #Remove moves made by other player
         if opp_move is not None:
@@ -58,9 +74,46 @@ class MyAgent(AgentBase):
     
 
     def MCTS(self,choices,board):
-         root = Node(board.copy(),self.colour,choices, move=None,parent=None)
-         for i in range(self._iterations):
+        root = Node(self.copy_board(board),self.colour,choices, move=None,parent=None)
+        for i in range(self._iterations):
             node = root
-            board_state = board.copy()
+            board_state = self.copy_board(board)
+
+            #SELECTION
+            #Check all untried nodes and node is non-terminal
+            while node.untried_moves == [] and node.child_nodes:
+                node = node.best_child()
+                move = node.move
+                board_state.set_tile_colour(move[0], move[1], node.colour)
+
+            #EXPANSION
+            #Add an extra child
+            if node.untried_moves:
+                move = random.choice(node.untried_moves)
+                next_colour = Colour.RED if node.colour == Colour.BLUE else Colour.BLUE
+                board_state.set_tile_colour(move[0], move[1], node.colour)
+                child = node.expand(self.copy_board(board_state), next_colour, move)
+                node = child
+
+            #SIMULATION
+            rollout_colour = node.colour 
+            rollout_moves = node.untried_moves[:]  # remaining legal moves
+
+            random.shuffle(rollout_moves)
+
+            for legal_move in rollout_moves:
+                board_state.set_tile_colour(legal_move[0], legal_move[1], rollout_colour) #Colour random legal move
+                rollout_colour = Colour.RED if rollout_colour == Colour.BLUE else Colour.BLUE #Switch colours for next random move
+
+                if board_state.has_ended(rollout_colour): #Check if game has ended
+                    break
+
+            #BACKPROPAGATION
+            winner = board_state.get_winner()
+            node.backpropagation(winner)
+
+        #Return most visited node. 
+        best_child = max(root.child_nodes, key=lambda c: c.visits)
+        return best_child.move
             
     
