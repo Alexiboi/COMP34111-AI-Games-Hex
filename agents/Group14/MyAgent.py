@@ -16,9 +16,10 @@ class MyAgent(AgentBase):
     You must implement the make_move method to make the agent functional.
     You CANNOT modify the AgentBase class, otherwise your agent might not function.
     """
-    _iterations: int = 100
+    _iterations: int = 1000
     _choices: list[Move]
     _board_size: int = 11
+    virtual_bridges = []
 
     def __init__(self, colour: Colour):
         super().__init__(colour)
@@ -66,6 +67,7 @@ class MyAgent(AgentBase):
             if coord in self._choices:
                 self._choices.remove(coord)
                 self.legal_moves_count -= 1
+            
 
         #Find best move
         best_move = self.MCTS(self._choices,board)
