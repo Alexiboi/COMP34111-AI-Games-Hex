@@ -112,7 +112,7 @@ class MyAgentReroot(AgentBase):
             else:
                 self._iterations = int(4000 / 4)
         
-        self._iterations = int(self._iterations*2)        
+        self._iterations = int(self._iterations/2)        
         
         # Advance tree with opponent move (re-rooting)
         if opp_move is not None and self._root is not None:

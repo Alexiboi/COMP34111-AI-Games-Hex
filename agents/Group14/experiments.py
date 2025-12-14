@@ -6,7 +6,7 @@ import csv
 from datetime import datetime
 
 AGENT = "agents.Group14.MyAgent MyAgent"
-OPPONENT = "agents.Group14.MyAgentReroot MyAgentReroot"
+OPPONENT = "agents.Group14.MyAgentTerminal MyAgentTerminal"
 AGENTNAME = AGENT.split()[-1]
 OPPONENTNAME = OPPONENT.split()[-1]
 

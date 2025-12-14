@@ -82,52 +82,23 @@ class MyAgentTerminal(AgentBase):
             coord = opp_move._x, opp_move._y 
             if coord in self._choices:
                 self._choices.remove(coord)
+                
+        print(f"Available moves: {self._choices}")
         
-        # 1) Immediate winning move
-        for move in self._choices:
-            b = self.copy_board(board)
-            b.set_tile_colour(move[0], move[1], self.colour)
-            if b.has_ended(self.colour):
-                return Move(move[0], move[1])
-
-        # 2) Immediate blocking move
-        opp = self.opp_colour()
-        for move in self._choices:
-            b = self.copy_board(board)
-            b.set_tile_colour(move[0], move[1], opp)
-            if b.has_ended(opp):
-                return Move(move[0], move[1])
+                
+        protocol_move = self.apply_terminal_protocol(board)
+        if protocol_move is not None:
+            print("FORCED WIN FOUND")
+            print("FORCED WIN FOUND")
+            print("FORCED WIN FOUND")
+            self._choices.remove(protocol_move)
+            return Move(protocol_move[0], protocol_move[1])
 
 
 
 
-        empty_ratio = len(self._choices) / (self._hexes)
-        if turn == 1:
-            self._iterations = int(60000 / 4)
-
-        elif turn <= 4:
-            self._iterations = int(50000 / 4)
-
-        elif turn <= 6:
-            self._iterations = int(35000 / 4)
-
-        elif turn <= 8:
-            self._iterations = int(22500 / 4)
-
-        elif turn <= 10:
-            self._iterations = int(15000 / 4)
-
-        else:
-
-            if empty_ratio > 0.5:
-                self._iterations = int(10000 / 4)
-            elif empty_ratio > 0.35:
-                self._iterations = int(6000 / 4)
-            else:
-                self._iterations = int(4000 / 4)
-                 
-                 
-        self._iterations = int(self._iterations/4)        
+        self.set_iterations(turn, 0.5)      
+       
 
         
         #Find best move
@@ -181,5 +152,54 @@ class MyAgentTerminal(AgentBase):
         #Return most visited node
         best_child = max(root.child_nodes, key=lambda c: c.visits)
         return best_child.move
+    
+    def apply_terminal_protocol(self, board: Board):
+        # 1) Immediate winning move
+        for move in self._choices:
+            b = self.copy_board(board)
+            b.set_tile_colour(move[0], move[1], self.colour)
+            if b.has_ended(self.colour):
+                return move
+
+        # 2) Immediate blocking move
+        opp = self.opp_colour()
+        for move in self._choices:
+            b = self.copy_board(board)
+            b.set_tile_colour(move[0], move[1], opp)
+            if b.has_ended(opp):
+                return move
+
+        return None
+    
+    def set_iterations(self, turn: int, mult_factor : int | float = 1.0):
+        empty_ratio = len(self._choices) / (self._hexes)
+        
+        if turn == 1:
+            self._iterations = int(60000 / 4)
+
+        elif turn <= 4:
+            self._iterations = int(50000 / 4)
+
+        elif turn <= 6:
+            self._iterations = int(35000 / 4)
+
+        elif turn <= 8:
+            self._iterations = int(22500 / 4)
+
+        elif turn <= 10:
+            self._iterations = int(15000 / 4)
+
+        else:
+
+            if empty_ratio > 0.5:
+                self._iterations = int(10000 / 4)
+            elif empty_ratio > 0.35:
+                self._iterations = int(6000 / 4)
+            else:
+                self._iterations = int(4000 / 4)
+                
+        self._iterations = int(self._iterations*mult_factor)
+            
+
             
     
