@@ -7,6 +7,13 @@ from src.Move import Move
 #from . import Node
 from .Node import Node
 
+HEX_DIRS = [
+    (-1, 0), (1, 0),
+    (0, -1), (0, 1),
+    (-1, 1), (1, -1)
+]
+safe_first_moves = [(0, 1), (0, 9), (10, 1), (10, 9)] 
+
 class MyAgent(AgentBase):
     """This class describes the default Hex agent. It will randomly send a
     valid move at each turn, and it will choose to swap with a 50% chance.
@@ -38,7 +45,72 @@ class MyAgent(AgentBase):
 
         return new_board
     
+    def check_virtual_bridges(self, board: Board, move):
+        x, y = move
+        colour = self.colour
 
+        if board.tiles[x][y].colour != colour:
+            return
+
+        for dx, dy in HEX_DIRS:
+            ox, oy = x + dx, y + dy
+            if not (0 <= ox < self._board_size and 0 <= oy < self._board_size):
+                continue
+
+            # look past one hex
+            tx, ty = ox + dx, oy + dy
+            if not (0 <= tx < self._board_size and 0 <= ty < self._board_size):
+                continue
+
+            if board.tiles[tx][ty].colour != colour:
+                continue
+
+            # x,y and tx,ty are same colour and not adjacent
+            # find common neighbours
+            common = []
+
+            for nx, ny in self.neighbours(x, y):
+                if (nx, ny) in self.neighbours(tx, ty):
+                    if board.tiles[nx][ny].colour is None:
+                        common.append((nx, ny))
+
+            if len(common) == 2:
+                bridge = {
+                    "ends": ((x, y), (tx, ty)),
+                    "links": tuple(common)
+                }
+
+                if bridge not in self.virtual_bridges:
+                    self.virtual_bridges.append(bridge)
+
+
+    def neighbours(self, x, y):
+        for dx, dy in HEX_DIRS:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < self._board_size and 0 <= ny < self._board_size:
+                yield nx, ny
+
+    def check_bridge_invasion(self, opp_move):
+        if opp_move is None:
+            return None
+
+        ox, oy = opp_move._x, opp_move._y
+
+        for bridge in self.virtual_bridges[:]:  # copy to allow removal
+            l1, l2 = bridge["links"]
+
+            if (ox, oy) == l1:
+                self.virtual_bridges.remove(bridge)
+                return l2
+
+            if (ox, oy) == l2:
+                self.virtual_bridges.remove(bridge)
+                return l1
+
+        return None
+
+
+    
 
     def make_move(self, turn: int, board: Board, opp_move: Move | None) -> Move:
         """The game engine will call this method to request a move from the agent.
@@ -58,7 +130,6 @@ class MyAgent(AgentBase):
 
         # choose a safe move on corner/side to avoid immediate swap
         if turn == 1:
-            safe_first_moves = [(0, 1), (0, 9), (10, 1), (10, 9)] 
             move = random.choice([m for m in safe_first_moves if m in self._choices])
             self._choices.remove(move)
             return Move(_x=move[0], _y=move[1])
@@ -73,25 +144,32 @@ class MyAgent(AgentBase):
                     self._choices.remove(coord)
 
 
-
         # Remove opponent move from choices
         if opp_move is not None:
             coord = opp_move._x, opp_move._y
             if coord in self._choices:
                 self._choices.remove(coord)
 
+        forced_move = self.check_bridge_invasion(opp_move)
+        if forced_move and forced_move in self._choices:
+            self._choices.remove(forced_move)
+            return Move(_x=forced_move[0], _y=forced_move[1])
 
-
+                 
         
         #Find best move
         best_move = self.MCTS(self._choices,board)
         
         #Remove moves made by agent
         self._choices.remove(best_move)
-        best_move = Move(_x = best_move[0], _y = best_move[1])
-        
-        
-        return best_move
+        # update board for bridge detection
+        board.set_tile_colour(best_move[0], best_move[1], self.colour)
+
+        # check bridges using tuple
+        self.check_virtual_bridges(board, best_move)
+
+        # only now convert to Move
+        return Move(_x=best_move[0], _y=best_move[1])
     
 
     def MCTS(self,choices,board):
