@@ -46,6 +46,11 @@ class MyAgent(AgentBase):
         return new_board
     
     def check_virtual_bridges(self, board: Board, move):
+
+        self.virtual_bridges = [
+        b for b in self.virtual_bridges
+        if b["links"][0] != move and b["links"][1] != move
+    ]
         x, y = move
         colour = self.colour
 
@@ -81,6 +86,7 @@ class MyAgent(AgentBase):
                 }
 
                 if bridge not in self.virtual_bridges:
+                    
                     self.virtual_bridges.append(bridge)
 
 
@@ -91,6 +97,8 @@ class MyAgent(AgentBase):
                 yield nx, ny
 
     def check_bridge_invasion(self, opp_move):
+
+        
         if opp_move is None:
             return None
 
