@@ -7,7 +7,7 @@ from src.Move import Move
 #from . import Node
 from .Node import Node
 
-class MyAgent(AgentBase):
+class MyAgentReroot(AgentBase):
     """This class describes the default Hex agent. It will randomly send a
     valid move at each turn, and it will choose to swap with a 50% chance.
 
@@ -20,7 +20,8 @@ class MyAgent(AgentBase):
     _choices: list[Move]
     _board_size: int = 11
     virtual_bridges = []
-
+    _root: Node | None
+    
     #All moves that should be swapped on turn 2
     swappable_moves = [
         Move(5, 5),
@@ -39,6 +40,7 @@ class MyAgent(AgentBase):
             (i, j) for i in range(self._board_size) for j in range(self._board_size)
         ]
         self._hexes = self._board_size * self._board_size
+        self._root = None
 
         
         
@@ -71,6 +73,7 @@ class MyAgent(AgentBase):
         Returns:
             Move: The agent's move
         """
+        print("MAKING MOVE")
         #SWAP
         if turn == 2:
             for move in self.swappable_moves:
@@ -82,7 +85,6 @@ class MyAgent(AgentBase):
             coord = opp_move._x, opp_move._y 
             if coord in self._choices:
                 self._choices.remove(coord)
-
 
 
         empty_ratio = len(self._choices) / (self._hexes)
@@ -109,9 +111,23 @@ class MyAgent(AgentBase):
                 self._iterations = int(6000 / 4)
             else:
                 self._iterations = int(4000 / 4)
-                 
-                 
+        
         self._iterations = int(self._iterations*2)        
+        
+        # Advance tree with opponent move (re-rooting)
+        if opp_move is not None and self._root is not None:
+            opp_coord = (opp_move._x, opp_move._y)
+
+            for child in self._root.child_nodes:
+                print((child.move.__str__(), opp_coord) )
+                if child.move == opp_coord:
+                    print("REROOTING...")
+                    self._root = child
+                    self._root.parent = None
+                    break
+            else:
+                # Opponent move not explored → discard tree
+                self._root = None
 
         
         #Find best move
@@ -124,7 +140,18 @@ class MyAgent(AgentBase):
     
 
     def MCTS(self,choices,board):
-        root = Node(self.copy_board(board),self.colour,choices, move=None,parent=None)
+
+        if self._root is None:
+            print("Creating new root...")
+            self._root = Node(
+                self.copy_board(board),
+                self.colour,
+                choices,
+                move=None,
+                parent=None
+            )
+
+        root = self._root
         for i in range(self._iterations):
             node = root
             board_state = self.copy_board(board)
@@ -162,8 +189,15 @@ class MyAgent(AgentBase):
             winner = board_state.get_winner()
             node.backpropagation(winner)
 
+        if not root.child_nodes:
+            # Fallback: no explored children
+            return random.choice(choices)
+
+
         #Return most visited node
         best_child = max(root.child_nodes, key=lambda c: c.visits)
+        self._root = best_child
+        self._root.parent = None
         return best_child.move
             
     

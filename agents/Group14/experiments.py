@@ -30,8 +30,8 @@ def run_game(seed: int, game_id: int):
             "python", "Hex.py",
             "-p1", AGENT,
             "-p2", OPPONENT,
-            "-p1Name", AGENT,
-            "-p2Name", OPPONENT,
+            "-p1Name", AGENTNAME,
+            "-p2Name", OPPONENTNAME,
             "-l", logfile
         ],
         env=env,

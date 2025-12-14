@@ -7,7 +7,7 @@ from src.Move import Move
 #from . import Node
 from .Node import Node
 
-class MyAgent(AgentBase):
+class MyAgentTerminal(AgentBase):
     """This class describes the default Hex agent. It will randomly send a
     valid move at each turn, and it will choose to swap with a 50% chance.
 
@@ -82,6 +82,22 @@ class MyAgent(AgentBase):
             coord = opp_move._x, opp_move._y 
             if coord in self._choices:
                 self._choices.remove(coord)
+        
+        # 1) Immediate winning move
+        for move in self._choices:
+            b = self.copy_board(board)
+            b.set_tile_colour(move[0], move[1], self.colour)
+            if b.has_ended(self.colour):
+                return Move(move[0], move[1])
+
+        # 2) Immediate blocking move
+        opp = self.opp_colour()
+        for move in self._choices:
+            b = self.copy_board(board)
+            b.set_tile_colour(move[0], move[1], opp)
+            if b.has_ended(opp):
+                return Move(move[0], move[1])
+
 
 
 
@@ -111,7 +127,7 @@ class MyAgent(AgentBase):
                 self._iterations = int(4000 / 4)
                  
                  
-        self._iterations = int(self._iterations*2)        
+        self._iterations = int(self._iterations/4)        
 
         
         #Find best move
