@@ -7,10 +7,8 @@ from datetime import datetime
 
 AGENT = "agents.Group14.MyAgent MyAgent"
 OPPONENT = "agents.Group14.MyAgentReroot MyAgentReroot"
-AGENTNAME = AGENT.split()[-1]
-OPPONENTNAME = OPPONENT.split()[-1]
 
-SEEDS = [0]
+SEEDS = [0, 1, 2]
 GAMES_PER_SEED = 20
 LOG_DIR = "agents/Group14/logs"
 
@@ -24,25 +22,9 @@ def run_game(seed: int, game_id: int):
     env["PYTHONHASHSEED"] = str(seed)
     random.seed(seed)
 
-    start_time = time.time()
-    subprocess.run(
-        [
-            "python", "Hex.py",
-            "-p1", AGENT,
-            "-p2", OPPONENT,
-            "-p1Name", AGENT,
-            "-p2Name", OPPONENT,
-            "-l", logfile
-        ],
-        env=env,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        check=True
-    )
-    game_time = time.time() - start_time
+    
     
     # Extract winner from log file
-    winner = None
     try:
         with open(logfile, 'r') as f:
             lines = f.readlines()
@@ -53,11 +35,13 @@ def run_game(seed: int, game_id: int):
             if winner_line.startswith("winner,"):
                 parts = winner_line.split(",")
                 if len(parts) >= 2:
-                    winner = parts[1]
+                    return parts[1]
     except Exception as e:
         print(f"Error reading log file: {e}")
+        
+    return ""
     
-    return winner, game_time
+    
 
 
 def main():
@@ -70,20 +54,18 @@ def main():
     total_wins = 0
     total_time = 0
     
+    agent_name = AGENT.split()[-1]
+    opponent_name = OPPONENT.split()[-1]
+
     for seed in SEEDS:
         print(f"Seed {seed}")
         for game in range(1, GAMES_PER_SEED + 1):
-            winner, game_time = run_game(seed, game)
+            winner = run_game(seed, game)
             total_games += 1
-            total_time += game_time
             
-            if winner == AGENTNAME:
+            if "reroot" not in winner.lower():
                 total_wins += 1
-                result = "WIN"
-            else:
-                result = "LOSS"
-            
-            print(f"  Game {game} done - {result} ({game_time:.2f}s)")
+               
 
     win_rate = (total_wins / total_games * 100) if total_games > 0 else 0
     avg_game_time = total_time / total_games if total_games > 0 else 0
@@ -95,7 +77,7 @@ def main():
     with open(csv_filename, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(['Agent', 'Opponent', 'Total Games', 'Total Wins', 'Win Rate (%)', 'Avg Game Time (s)'])
-        writer.writerow([AGENTNAME, OPPONENTNAME, total_games, total_wins, f"{win_rate:.2f}", f"{avg_game_time:.2f}"])
+        writer.writerow([agent_name, opponent_name, total_games, total_wins, f"{win_rate:.2f}", f"{avg_game_time:.2f}"])
     
     print("------------------------")
     print(f"All experiments finished.")
