@@ -21,28 +21,12 @@ class MyAgent(AgentBase):
     _board_size: int = 11
     virtual_bridges = []
 
-    #All moves that should be swapped on turn 2
-    swappable_moves = [
-        Move(5, 5),
-        Move(4, 5),
-        Move(6, 5),
-        Move(5, 4),
-        Move(5, 6),
-        Move(4, 6),
-        Move(6, 4),
-    ]
-
-
     def __init__(self, colour: Colour):
         super().__init__(colour)
         self._choices = [
             (i, j) for i in range(self._board_size) for j in range(self._board_size)
         ]
         self._hexes = self._board_size * self._board_size
-
-        
-        
-
 
     #COPY BOARD THROUGH AGENT, move if it is allowed to copy board through Board
     def copy_board(self, board: Board) -> Board:
@@ -53,8 +37,6 @@ class MyAgent(AgentBase):
                 new_board.set_tile_colour(x, y, board.tiles[x][y].colour)
 
         return new_board
-    
-
 
     def make_move(self, turn: int, board: Board, opp_move: Move | None) -> Move:
         """The game engine will call this method to request a move from the agent.
@@ -71,18 +53,28 @@ class MyAgent(AgentBase):
         Returns:
             Move: The agent's move
         """
-        #SWAP
-        if turn == 2:
-            for move in self.swappable_moves:
-                if move == opp_move:
-                    return Move(-1, -1)
 
-        #Remove moves made by other player
+        # choose a safe move on corner/side to avoid immediate swap
+        if turn == 1:
+            safe_first_moves = [(0, 1), (0, 9), (10, 1), (10, 9)] 
+            move = random.choice([m for m in safe_first_moves if m in self._choices])
+            self._choices.remove(move)
+            return Move(_x=move[0], _y=move[1])
+
+        # swap
+        if turn == 2:
+            if 3 <= opp_move._x <= 7 and 3 <= opp_move._y <= 7:
+                return Move(-1, -1)
+            if opp_move is not None:
+                coord = opp_move._x, opp_move._y 
+                if coord in self._choices:
+                    self._choices.remove(coord)
+
+        # Remove opponent move from choices
         if opp_move is not None:
-            coord = opp_move._x, opp_move._y 
+            coord = opp_move._x, opp_move._y
             if coord in self._choices:
                 self._choices.remove(coord)
-
 
 
         empty_ratio = len(self._choices) / (self._hexes)
