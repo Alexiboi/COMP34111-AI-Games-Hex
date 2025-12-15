@@ -1,0 +1,2 @@
+Agent,Opponent,Total Games,Total Wins,Win Rate (%),Avg Game Time (s)
+MyAgent,ValidAgent,60,59,98.33,45.90
