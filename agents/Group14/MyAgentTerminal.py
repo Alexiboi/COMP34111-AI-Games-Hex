@@ -7,7 +7,7 @@ from src.Move import Move
 #from . import Node
 from .Node import Node
 
-class MyAgent(AgentBase):
+class MyAgentTerminal(AgentBase):
     """This class describes the default Hex agent. It will randomly send a
     valid move at each turn, and it will choose to swap with a 50% chance.
 
@@ -16,10 +16,22 @@ class MyAgent(AgentBase):
     You must implement the make_move method to make the agent functional.
     You CANNOT modify the AgentBase class, otherwise your agent might not function.
     """
-    _iterations: int = 1000
+    _iterations: int = 300
     _choices: list[Move]
     _board_size: int = 11
     virtual_bridges = []
+
+    #All moves that should be swapped on turn 2
+    swappable_moves = [
+        Move(5, 5),
+        Move(4, 5),
+        Move(6, 5),
+        Move(5, 4),
+        Move(5, 6),
+        Move(4, 6),
+        Move(6, 4),
+    ]
+
 
     def __init__(self, colour: Colour):
         super().__init__(colour)
@@ -27,6 +39,10 @@ class MyAgent(AgentBase):
             (i, j) for i in range(self._board_size) for j in range(self._board_size)
         ]
         self._hexes = self._board_size * self._board_size
+
+        
+        
+
 
     #COPY BOARD THROUGH AGENT, move if it is allowed to copy board through Board
     def copy_board(self, board: Board) -> Board:
@@ -55,34 +71,34 @@ class MyAgent(AgentBase):
         Returns:
             Move: The agent's move
         """
-
-        # choose a safe move on corner/side to avoid immediate swap
-        if turn == 1:
-            safe_first_moves = [(0, 1), (0, 9), (10, 1), (10, 9)] 
-            move = random.choice([m for m in safe_first_moves if m in self._choices])
-            self._choices.remove(move)
-            return Move(_x=move[0], _y=move[1])
-        
-        # swap
+        #SWAP
         if turn == 2:
-            if 3 <= opp_move._x <= 7 and 3 <= opp_move._y <= 7:
-                return Move(-1, -1)
-            if opp_move is not None:
-                coord = opp_move._x, opp_move._y 
-                if coord in self._choices:
-                    self._choices.remove(coord)
+            for move in self.swappable_moves:
+                if move == opp_move:
+                    return Move(-1, -1)
 
-
-
-        # Remove opponent move from choices
+        #Remove moves made by other player
         if opp_move is not None:
-            coord = opp_move._x, opp_move._y
+            coord = opp_move._x, opp_move._y 
             if coord in self._choices:
                 self._choices.remove(coord)
+                
+        print(f"Available moves: {self._choices}")
+        
+                
+        protocol_move = self.apply_terminal_protocol(board)
+        if protocol_move is not None:
+            print("FORCED WIN FOUND")
+            print("FORCED WIN FOUND")
+            print("FORCED WIN FOUND")
+            self._choices.remove(protocol_move)
+            return Move(protocol_move[0], protocol_move[1])
 
 
-     
+
+
         self.set_iterations(turn, 0.5)      
+       
 
         
         #Find best move
@@ -91,8 +107,6 @@ class MyAgent(AgentBase):
         #Remove moves made by agent
         self._choices.remove(best_move)
         best_move = Move(_x = best_move[0], _y = best_move[1])
-        
-        
         return best_move
     
 
@@ -139,6 +153,24 @@ class MyAgent(AgentBase):
         best_child = max(root.child_nodes, key=lambda c: c.visits)
         return best_child.move
     
+    def apply_terminal_protocol(self, board: Board):
+        # 1) Immediate winning move
+        for move in self._choices:
+            b = self.copy_board(board)
+            b.set_tile_colour(move[0], move[1], self.colour)
+            if b.has_ended(self.colour):
+                return move
+
+        # 2) Immediate blocking move
+        opp = self.opp_colour()
+        for move in self._choices:
+            b = self.copy_board(board)
+            b.set_tile_colour(move[0], move[1], opp)
+            if b.has_ended(opp):
+                return move
+
+        return None
+    
     def set_iterations(self, turn: int, mult_factor : int | float = 1.0):
         empty_ratio = len(self._choices) / (self._hexes)
         
@@ -167,5 +199,7 @@ class MyAgent(AgentBase):
                 self._iterations = int(4000 / 4)
                 
         self._iterations = int(self._iterations*mult_factor)
+            
+
             
     

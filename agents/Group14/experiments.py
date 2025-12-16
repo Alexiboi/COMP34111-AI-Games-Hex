@@ -6,7 +6,7 @@ import csv
 from datetime import datetime
 
 AGENT = "agents.Group14.MyAgent MyAgent"
-OPPONENT = "agents.Group14.MyAgentReroot MyAgentReroot"
+OPPONENT = "agents.Group14.MyAgentTerminal MyAgentTerminal"
 AGENTNAME = AGENT.split()[-1]
 OPPONENTNAME = OPPONENT.split()[-1]
 
@@ -30,8 +30,8 @@ def run_game(seed: int, game_id: int):
             "python", "Hex.py",
             "-p1", AGENT,
             "-p2", OPPONENT,
-            "-p1Name", AGENT,
-            "-p2Name", OPPONENT,
+            "-p1Name", AGENTNAME,
+            "-p2Name", OPPONENTNAME,
             "-l", logfile
         ],
         env=env,

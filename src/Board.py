@@ -23,6 +23,17 @@ class Board:
         # store coordinates of winning path tiles
         self._winning_path: set[tuple[int, int]] = set()
 
+
+    def __hash__(self) -> int:
+        # Flatten board colours into an immutable tuple
+        colours = tuple(
+            self._tiles[i][j].colour
+            for i in range(self._size)
+            for j in range(self._size)
+        )
+        return hash((self._size, colours))
+
+
     def __str__(self) -> str:
         return self.print_board()
 
