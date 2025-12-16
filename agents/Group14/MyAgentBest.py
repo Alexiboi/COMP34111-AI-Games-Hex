@@ -4,10 +4,16 @@ from src.AgentBase import AgentBase
 from src.Board import Board
 from src.Colour import Colour
 from src.Move import Move
-#from . import Node
 from .Node import Node
 
-class MyAgentTerminal(AgentBase):
+HEX_DIRS = [
+    (-1, 0), (1, 0),
+    (0, -1), (0, 1),
+    (-1, 1), (1, -1)
+]
+safe_first_moves = [(0, 1), (0, 9), (10, 1), (10, 9)] 
+
+class MyAgentBest(AgentBase):
     """This class describes the default Hex agent. It will randomly send a
     valid move at each turn, and it will choose to swap with a 50% chance.
 
@@ -21,28 +27,12 @@ class MyAgentTerminal(AgentBase):
     _board_size: int = 11
     virtual_bridges = []
 
-    #All moves that should be swapped on turn 2
-    swappable_moves = [
-        Move(5, 5),
-        Move(4, 5),
-        Move(6, 5),
-        Move(5, 4),
-        Move(5, 6),
-        Move(4, 6),
-        Move(6, 4),
-    ]
-
-
     def __init__(self, colour: Colour):
         super().__init__(colour)
         self._choices = [
             (i, j) for i in range(self._board_size) for j in range(self._board_size)
         ]
         self._hexes = self._board_size * self._board_size
-
-        
-        
-
 
     #COPY BOARD THROUGH AGENT, move if it is allowed to copy board through Board
     def copy_board(self, board: Board) -> Board:
@@ -54,8 +44,6 @@ class MyAgentTerminal(AgentBase):
 
         return new_board
     
-
-
     def make_move(self, turn: int, board: Board, opp_move: Move | None) -> Move:
         """The game engine will call this method to request a move from the agent.
         If the agent is to make the first move, opp_move will be None.
@@ -71,41 +59,49 @@ class MyAgentTerminal(AgentBase):
         Returns:
             Move: The agent's move
         """
-        #SWAP
-        if turn == 2:
-            for move in self.swappable_moves:
-                if move == opp_move:
-                    return Move(-1, -1)
 
-        #Remove moves made by other player
+        # choose a safe move on corner/side to avoid immediate swap
+        if turn == 1:
+            move = random.choice([m for m in safe_first_moves if m in self._choices])
+            self._choices.remove(move)
+            return Move(_x=move[0], _y=move[1])
+        
+        # swap
+        if turn == 2:
+            if 3 <= opp_move._x <= 7 and 3 <= opp_move._y <= 7:
+                return Move(-1, -1)
+            if opp_move is not None:
+                coord = opp_move._x, opp_move._y 
+                if coord in self._choices:
+                    self._choices.remove(coord)
+
+
+        # Remove opponent move from choices
         if opp_move is not None:
-            coord = opp_move._x, opp_move._y 
+            coord = opp_move._x, opp_move._y
             if coord in self._choices:
                 self._choices.remove(coord)
-                        
                 
-        protocol_move = self.apply_terminal_protocol(board)
-        if protocol_move is not None:
-            print("FORCED WIN FOUND")
-            print("FORCED WIN FOUND")
-            print("FORCED WIN FOUND")
-            self._choices.remove(protocol_move)
-            return Move(protocol_move[0], protocol_move[1])
+        forced_move = self.forced_move(board, self._choices, opp_move)
+        
+        if forced_move:
+            return forced_move
 
-
-
-
-        self.set_iterations(turn, 0.5)      
-       
-
+                 
         
         #Find best move
         best_move = self.MCTS(self._choices,board)
         
         #Remove moves made by agent
         self._choices.remove(best_move)
-        best_move = Move(_x = best_move[0], _y = best_move[1])
-        return best_move
+        # update board for bridge detection
+        board.set_tile_colour(best_move[0], best_move[1], self.colour)
+
+        # check bridges using tuple
+        self.check_virtual_bridges(board, best_move)
+
+        # only now convert to Move
+        return Move(_x=best_move[0], _y=best_move[1])
     
 
     def MCTS(self,choices,board):
@@ -150,10 +146,85 @@ class MyAgentTerminal(AgentBase):
         #Return most visited node
         best_child = max(root.child_nodes, key=lambda c: c.visits)
         return best_child.move
+            
     
-    def apply_terminal_protocol(self, board: Board):
+    
+    def check_virtual_bridges(self, board: Board, move):
+
+        self.virtual_bridges = [
+        b for b in self.virtual_bridges
+        if b["links"][0] != move and b["links"][1] != move
+    ]
+        x, y = move
+        colour = self.colour
+
+        if board.tiles[x][y].colour != colour:
+            return
+
+        for dx, dy in HEX_DIRS:
+            ox, oy = x + dx, y + dy
+            if not (0 <= ox < self._board_size and 0 <= oy < self._board_size):
+                continue
+
+            # look past one hex
+            tx, ty = ox + dx, oy + dy
+            if not (0 <= tx < self._board_size and 0 <= ty < self._board_size):
+                continue
+
+            if board.tiles[tx][ty].colour != colour:
+                continue
+
+            # x,y and tx,ty are same colour and not adjacent
+            # find common neighbours
+            common = []
+
+            for nx, ny in self.neighbours(x, y):
+                if (nx, ny) in self.neighbours(tx, ty):
+                    if board.tiles[nx][ny].colour is None:
+                        common.append((nx, ny))
+
+            if len(common) == 2:
+                bridge = {
+                    "ends": ((x, y), (tx, ty)),
+                    "links": tuple(common)
+                }
+
+                if bridge not in self.virtual_bridges:
+                    
+                    self.virtual_bridges.append(bridge)
+
+
+    def neighbours(self, x, y):
+        for dx, dy in HEX_DIRS:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < self._board_size and 0 <= ny < self._board_size:
+                yield nx, ny
+
+    def check_bridge_invasion(self, opp_move):
+
+        
+        if opp_move is None:
+            return None
+
+        ox, oy = opp_move._x, opp_move._y
+
+        for bridge in self.virtual_bridges[:]:  # copy to allow removal
+            l1, l2 = bridge["links"]
+
+            if (ox, oy) == l1:
+                self.virtual_bridges.remove(bridge)
+                return l2
+
+            if (ox, oy) == l2:
+                self.virtual_bridges.remove(bridge)
+                return l1
+
+        return None
+
+
+    def apply_terminal_protocol(self, board: Board, choices):
         # 1) Immediate winning move
-        for move in self._choices:
+        for move in choices:
             b = self.copy_board(board)
             b.set_tile_colour(move[0], move[1], self.colour)
             if b.has_ended(self.colour):
@@ -161,43 +232,21 @@ class MyAgentTerminal(AgentBase):
 
         # 2) Immediate blocking move
         opp = self.opp_colour()
-        for move in self._choices:
+        for move in choices:
             b = self.copy_board(board)
             b.set_tile_colour(move[0], move[1], opp)
             if b.has_ended(opp):
                 return move
 
         return None
-    
-    def set_iterations(self, turn: int, mult_factor : int | float = 1.0):
-        empty_ratio = len(self._choices) / (self._hexes)
-        
-        if turn == 1:
-            self._iterations = int(60000 / 4)
 
-        elif turn <= 4:
-            self._iterations = int(50000 / 4)
+    def forced_move(self, board, choices, opp_move):
+        terminal_move = self.apply_terminal_protocol(board, choices)
+        if terminal_move is not None:
+            self._choices.remove(terminal_move)
+            return Move(terminal_move[0], terminal_move[1])
 
-        elif turn <= 6:
-            self._iterations = int(35000 / 4)
-
-        elif turn <= 8:
-            self._iterations = int(22500 / 4)
-
-        elif turn <= 10:
-            self._iterations = int(15000 / 4)
-
-        else:
-
-            if empty_ratio > 0.5:
-                self._iterations = int(10000 / 4)
-            elif empty_ratio > 0.35:
-                self._iterations = int(6000 / 4)
-            else:
-                self._iterations = int(4000 / 4)
-                
-        self._iterations = int(self._iterations*mult_factor)
-            
-
-            
-    
+        forced_move = self.check_bridge_invasion(opp_move)
+        if forced_move and forced_move in self._choices:
+            self._choices.remove(forced_move)
+            return Move(_x=forced_move[0], _y=forced_move[1])
