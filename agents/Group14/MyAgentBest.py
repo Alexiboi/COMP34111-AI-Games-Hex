@@ -1,5 +1,6 @@
 #from random import choice, random
 import random
+from agents.Group14.VirtualBridge import VirtualBridge
 from src.AgentBase import AgentBase
 from src.Board import Board
 from src.Colour import Colour
@@ -25,7 +26,7 @@ class MyAgentBest(AgentBase):
     _iterations: int = 1000
     _choices: list[Move]
     _board_size: int = 11
-    virtual_bridges = []
+    virtual_bridges: list[VirtualBridge] = []
 
     def __init__(self, colour: Colour):
         super().__init__(colour)
@@ -69,13 +70,13 @@ class MyAgentBest(AgentBase):
             return move
 
         # Case 1: opponent played a normal move
-        if opp_move is not None and opp_move._x != -1:
+        if opp_move is not None and opp_move.x != -1:
             if opp_move in self._choices:
                 self._choices.remove(opp_move)
 
             # TURN 2 only: decide whether *we* should swap
             if turn == 2:
-                ox, oy = opp_move._x, opp_move._y
+                ox, oy = opp_move.x, opp_move.y
                 centre_min, centre_max = 3, 7
 
                 is_central = (
@@ -96,6 +97,7 @@ class MyAgentBest(AgentBase):
         forced_move = self.forced_move(board, self._choices, opp_move)
         
         if forced_move:
+            self.check_virtual_bridges(board, forced_move)
             return forced_move
 
                  
@@ -162,14 +164,25 @@ class MyAgentBest(AgentBase):
     
     def check_virtual_bridges(self, board: Board, our_move: Move):
 
+        print("OUR MOVE:", our_move)
         x, y = our_move.x, our_move.y
         colour = self.colour
 
         if board.tiles[x][y].colour != colour:
             return
+        
+        nbrs_xy = set(self.neighbours(x, y))
 
-        for dx1, dy1 in HEX_DIRS:
-            for dx2, dy2 in HEX_DIRS:
+        dirs = HEX_DIRS
+
+        for i in range(len(dirs)):
+            
+            dx1, dy1 = dirs[i]
+            
+            for j in range(i + 1, len(dirs)):
+                
+                dx2, dy2 = dirs[j]
+                
                 if (dx1, dy1) == (dx2, dy2):
                     continue
 
@@ -183,11 +196,19 @@ class MyAgentBest(AgentBase):
 
                 if board.tiles[tx][ty].colour != colour:
                     continue
+                
+                if tx == x and ty == y:
+                    continue
+                
+                # reject adjacent endpoints
+                if (tx, ty) in nbrs_xy:
+                    continue
 
-                common = []
+
+                common : list[Move] = []
                 nbrs_tx_ty = set(self.neighbours(tx, ty))
 
-                for nx, ny in self.neighbours(x, y):
+                for nx, ny in nbrs_xy:
 
                     if (nx, ny) in nbrs_tx_ty:
 
@@ -197,15 +218,26 @@ class MyAgentBest(AgentBase):
 
                 if len(common) == 2:
                     print("  *** BRIDGE FOUND ***")
+                    
+                    print("Between:", (x,y), (tx,ty))
+                    print("Link = ", common)
 
-                    bridge = {
-                        "ends": (Move(x, y), Move(tx, ty)),
-                        "links": tuple(common)
-                    }
+                    bridge = VirtualBridge(Move(x, y), Move(tx, ty), common)
+                    self.virtual_bridges.append(bridge)
 
-                    if bridge not in self.virtual_bridges:
-                        print("  -> Adding bridge")
-                        self.virtual_bridges.append(bridge)
+
+        
+    def remove_broken_virtual_bridges(self, move: Move) -> None:
+        mx, my = move.x, move.y
+
+        self.virtual_bridges = [
+            bridge
+            for bridge in self.virtual_bridges
+            if not any(
+                mx == link.x and my == link.y
+                for link in bridge.links
+            )
+        ]
 
 
     def neighbours(self, x : int, y : int):
@@ -216,22 +248,32 @@ class MyAgentBest(AgentBase):
 
     def check_bridge_invasion(self, opp_move : Move) -> Move | None:
 
-        ox, oy = opp_move._x, opp_move._y
+        ox, oy = opp_move.x, opp_move.y
         
-        print("Virtual bridge length:", len(self.virtual_bridges))
-
+        print("Virtual bridge length right after opp_move:", len(self.virtual_bridges))
+        
+        RETALIATION_MOVE = None
+        
         for bridge in self.virtual_bridges[:]:  # copy to allow removal
             
             
-            l1, l2 = bridge["links"]
+            l1 = bridge.links[0]
+            l2 = bridge.links[1]
             
-            if (ox, oy) == l1:
-                self.virtual_bridges.remove(bridge)
-                return l2
+            if ox == l1.x and oy == l1.y:
+                self.virtual_bridges.remove(bridge)                
+                if not RETALIATION_MOVE:
+                    RETALIATION_MOVE = l2
 
-            if (ox, oy) == l2:
+            elif ox == l2.x and oy == l2.y:
                 self.virtual_bridges.remove(bridge)
-                return l1
+                if not RETALIATION_MOVE:
+                    RETALIATION_MOVE = l1
+
+        return RETALIATION_MOVE
+                    
+            
+
             
 
 
@@ -260,8 +302,8 @@ class MyAgentBest(AgentBase):
             print("FOUND FORCED WIN...MOVING TO TAKE/BLOCK...")
             return Move(terminal_move.x, terminal_move.y)
 
-        forced_move = self.check_bridge_invasion(opp_move)
-        if forced_move and forced_move in self._choices:
+        protect_bridge_move = self.check_bridge_invasion(opp_move)
+        if protect_bridge_move and protect_bridge_move in self._choices:
             print("FOUND THREATENED BRIDGE...MOVING TO RETAIN...")
-            self._choices.remove(forced_move)
-            return Move(_x=forced_move.x, _y=forced_move.y)
+            self._choices.remove(protect_bridge_move)
+            return Move(_x=protect_bridge_move.x, _y=protect_bridge_move.y)
