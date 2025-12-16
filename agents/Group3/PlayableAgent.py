@@ -1,5 +1,6 @@
 from random import choice
 
+from agents.TestAgents.utils import make_valid_move
 from src.AgentBase import AgentBase
 from src.Board import Board
 from src.Colour import Colour
@@ -18,11 +19,12 @@ class PlayableAgent(AgentBase):
 
     _choices: list[Move]
     _board_size: int = 11
+    _simulate: int = 0
 
     def __init__(self, colour: Colour):
         super().__init__(colour)
         self._choices = [
-            (i, j) for i in range(self._board_size) for j in range(self._board_size)
+            Move(i, j) for i in range(self._board_size) for j in range(self._board_size)
         ]
 
     def make_move(self, turn: int, board: Board, opp_move: Move | None) -> Move:
@@ -40,7 +42,18 @@ class PlayableAgent(AgentBase):
         Returns:
             Move: The agent's move
         """
-        move = input("enter your move in this format: x,y. For example if input == 5,3 then move is x=5, y=3: ")
+        
+        
+        if self._simulate > 0:
+            self._simulate -= 1
+            return make_valid_move(board)
+        
+        move = input("enter your move in this format: x,y. For example if input == 5,3 then move is x=5, y=3, to simlate to sim20: ")
+        
+        if "sim" in move:
+            self._simulate = int(move.strip().split("im")[1])
+            return make_valid_move(board)
+            
         x_coord, y_coord = move.strip().split(",")
         
         return Move(_x = int(x_coord), _y = int(y_coord))

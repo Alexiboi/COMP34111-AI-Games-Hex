@@ -33,7 +33,8 @@ class MyAgentBest(AgentBase):
             Move(i, j) for i in range(self._board_size) for j in range(self._board_size)
         ]
         self._hexes = self._board_size * self._board_size
-
+        self.virtual_bridges = []
+        
     #COPY BOARD THROUGH AGENT, move if it is allowed to copy board through Board
     def copy_board(self, board: Board) -> Board:
         new_board = Board(board.size)
@@ -159,51 +160,52 @@ class MyAgentBest(AgentBase):
             
     
     
-    def check_virtual_bridges(self, board: Board, move: Move):
+    def check_virtual_bridges(self, board: Board, our_move: Move):
 
-        self.virtual_bridges = [
-        b for b in self.virtual_bridges
-        if b["links"][0] != move and b["links"][1] != move
-    ]
-        x = move.x 
-        y = move.y
-        
+        x, y = our_move.x, our_move.y
         colour = self.colour
 
         if board.tiles[x][y].colour != colour:
             return
 
-        for dx, dy in HEX_DIRS:
-            ox, oy = x + dx, y + dy
-            if not (0 <= ox < self._board_size and 0 <= oy < self._board_size):
-                continue
+        for dx1, dy1 in HEX_DIRS:
+            for dx2, dy2 in HEX_DIRS:
+                if (dx1, dy1) == (dx2, dy2):
+                    continue
 
-            # look past one hex
-            tx, ty = ox + dx, oy + dy
-            if not (0 <= tx < self._board_size and 0 <= ty < self._board_size):
-                continue
+                tx = x + dx1 + dx2
+                ty = y + dy1 + dy2
 
-            if board.tiles[tx][ty].colour != colour:
-                continue
 
-            # x,y and tx,ty are same colour and not adjacent
-            # find common neighbours
-            common = []
+                if not (0 <= tx < self._board_size and 0 <= ty < self._board_size):
+                    continue
 
-            for nx, ny in self.neighbours(x, y):
-                if (nx, ny) in self.neighbours(tx, ty):
-                    if board.tiles[nx][ny].colour is None:
-                        common.append((nx, ny))
 
-            if len(common) == 2:
-                bridge = {
-                    "ends": ((x, y), (tx, ty)),
-                    "links": tuple(common)
-                }
+                if board.tiles[tx][ty].colour != colour:
+                    continue
 
-                if bridge not in self.virtual_bridges:
-                    
-                    self.virtual_bridges.append(bridge)
+                common = []
+                nbrs_tx_ty = set(self.neighbours(tx, ty))
+
+                for nx, ny in self.neighbours(x, y):
+
+                    if (nx, ny) in nbrs_tx_ty:
+
+                        if board.tiles[nx][ny].colour is None:
+                            common.append(Move(nx, ny))
+
+
+                if len(common) == 2:
+                    print("  *** BRIDGE FOUND ***")
+
+                    bridge = {
+                        "ends": (Move(x, y), Move(tx, ty)),
+                        "links": tuple(common)
+                    }
+
+                    if bridge not in self.virtual_bridges:
+                        print("  -> Adding bridge")
+                        self.virtual_bridges.append(bridge)
 
 
     def neighbours(self, x : int, y : int):
@@ -212,17 +214,17 @@ class MyAgentBest(AgentBase):
             if 0 <= nx < self._board_size and 0 <= ny < self._board_size:
                 yield nx, ny
 
-    def check_bridge_invasion(self, opp_move : Move):
-
-        
-        if opp_move is None:
-            return None
+    def check_bridge_invasion(self, opp_move : Move) -> Move | None:
 
         ox, oy = opp_move._x, opp_move._y
+        
+        print("Virtual bridge length:", len(self.virtual_bridges))
 
         for bridge in self.virtual_bridges[:]:  # copy to allow removal
+            
+            
             l1, l2 = bridge["links"]
-
+            
             if (ox, oy) == l1:
                 self.virtual_bridges.remove(bridge)
                 return l2
@@ -230,11 +232,10 @@ class MyAgentBest(AgentBase):
             if (ox, oy) == l2:
                 self.virtual_bridges.remove(bridge)
                 return l1
+            
 
-        return None
 
-
-    def apply_terminal_protocol(self, board: Board, choices: list[Move]):
+    def apply_terminal_protocol(self, board: Board, choices: list[Move]) -> Move | None:
         # 1) Immediate winning move
         for move in choices:
             b = self.copy_board(board)
@@ -252,13 +253,15 @@ class MyAgentBest(AgentBase):
 
         return None
 
-    def forced_move(self, board : Board, choices : list[Move], opp_move : Move):
+    def forced_move(self, board : Board, choices : list[Move], opp_move : Move) -> Move | None:
         terminal_move = self.apply_terminal_protocol(board, choices)
         if terminal_move is not None:
             self._choices.remove(terminal_move)
+            print("FOUND FORCED WIN...MOVING TO TAKE/BLOCK...")
             return Move(terminal_move.x, terminal_move.y)
 
         forced_move = self.check_bridge_invasion(opp_move)
         if forced_move and forced_move in self._choices:
+            print("FOUND THREATENED BRIDGE...MOVING TO RETAIN...")
             self._choices.remove(forced_move)
             return Move(_x=forced_move.x, _y=forced_move.y)

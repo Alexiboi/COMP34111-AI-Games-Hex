@@ -28,14 +28,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "-p2",
         "--player2",
-        default="agents.VirtualBridge.MyAgent MyAgent",
+        default="agents.Group3.PlayableAgent PlayableAgent",
         type=str,
         help="Specify the player 2 agent, format: agents.GroupX.AgentFile AgentClassName .e.g. agents.Group0.NaiveAgent NaiveAgent",
     )
     parser.add_argument(
         "-p2Name",
         "--player2Name",
-        default="VBAgent",
+        default="PlayableAgent",
         type=str,
         help="Specify the player 2 name",
     )
