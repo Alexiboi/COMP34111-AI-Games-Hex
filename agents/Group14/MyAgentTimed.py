@@ -14,7 +14,7 @@ HEX_DIRS = [
 ]
 safe_first_moves = [Move(0, 1), Move(0, 9), Move(10, 1), Move(10, 9)] 
 
-class MyAgent(AgentBase):
+class MyAgentTimed(AgentBase):
     """This class describes the default Hex agent. It will randomly send a
     valid move at each turn, and it will choose to swap with a 50% chance.
 
@@ -76,7 +76,7 @@ class MyAgent(AgentBase):
         print(f"Making move...{remaining} seconds left")
         
         if remaining < self.SAFETY:
-            # panic: must not flag
+            print("PANICKING...")
             move = random.choice(self._choices)
             self._choices.remove(move)
             self.time_used += time.perf_counter() - t0
@@ -131,8 +131,8 @@ class MyAgent(AgentBase):
         estimated_moves_left = max(20, len(self._choices) // 2)
 
         budget = (remaining - self.SAFETY) / estimated_moves_left
-        budget = min(budget, self.MAX_PER_MOVE)
         budget = max(budget, self.MIN_PER_MOVE)
+        budget = max(budget, 12.0)
 
         
         
@@ -154,6 +154,7 @@ class MyAgent(AgentBase):
 
     def MCTS(self,choices,board, budget) -> Move:
         start = time.perf_counter()
+        print(f"Running simulation with budget {budget}s")
         deadline = start + budget
         root = Node(self.copy_board(board),self.colour, choices, move=None,parent=None)
 

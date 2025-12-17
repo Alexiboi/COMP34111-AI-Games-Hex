@@ -202,7 +202,7 @@ class MyAgent(AgentBase):
                 board_state.set_tile_colour(legal_move.x, legal_move.y, rollout_colour) #Colour random legal move
                 
                 if board_state.has_ended(rollout_colour):
-                                    break
+                    break
                                 
                 rollout_colour = Colour.RED if rollout_colour == Colour.BLUE else Colour.BLUE
                 
