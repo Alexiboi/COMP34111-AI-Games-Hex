@@ -79,8 +79,9 @@ class MyAgent(AgentBase):
         if opp_move == None:
             safe_moves = [m for m in safe_first_moves if m in self._choices]
             move = random.choice(safe_moves)
-            self._choices.remove(move)
-            return move
+            safe_move = self.make_legal_move(move, board, self._choices, turn)
+            self._choices.remove(safe_move)
+            return safe_move
 
         # Case 1: opponent played a normal move
         if opp_move is not None and opp_move.x != -1:
@@ -103,28 +104,35 @@ class MyAgent(AgentBase):
                 )
 
                 if is_central or is_strong_edge:
-                    return Move(-1, -1)
+                    proposed_move = Move(-1, -1)
+                    return self.make_legal_move(proposed_move, board, self._choices, turn)
         
        
                 
         forced_move = self.forced_move(board, self._choices, opp_move)
         
         if forced_move:
-            self.update_bridges(board, forced_move)
-            return forced_move
+            safe_move = self.make_legal_move(forced_move, board, self._choices, turn)
+            self._choices.remove(safe_move)
+            board.set_tile_colour(safe_move.x, safe_move.y, self.colour)
+            self.update_bridges(board, safe_move)
+            return safe_move
 
         
         
         #Find best move
-        best_move = self.MCTS(self._choices,board)
+        best_move = self.MCTS(self._choices, board)
+        
+        safe_move = self.make_legal_move(best_move, board, self._choices, turn)
         
         #Remove moves made by agent
-        self._choices.remove(best_move)
+        self._choices.remove(safe_move)
+        
         # update board for bridge detection
-        board.set_tile_colour(best_move.x, best_move.y, self.colour)
+        board.set_tile_colour(safe_move.x, safe_move.y, self.colour)
 
         # check bridges using tuple
-        self.update_bridges(board, best_move)
+        self.update_bridges(board, safe_move)
         
         self.total += time.perf_counter() - t0
         
@@ -143,12 +151,12 @@ class MyAgent(AgentBase):
 
         
         # only now convert to Move
-        return Move(_x=best_move.x, _y=best_move.y)
+        return safe_move
     
 
     def MCTS(self,choices,board) -> Move:
         root = Node(self.copy_board(board),self.colour, choices, move=None,parent=None)
-        for i in range(5000):
+        for i in range(self._iterations):
             self.rollouts += 1
             node = root
             t0 = time.perf_counter()
@@ -175,12 +183,9 @@ class MyAgent(AgentBase):
                 #next_colour = self.opp_colour()
                 next_colour = Colour.BLUE if node.colour == Colour.RED else Colour.RED
                 #print(f"next colour: {next_colour}")
-                board_state.set_tile_colour(move.x, move.x, node.colour)
+                board_state.set_tile_colour(move.x, move.y, node.colour)
                 
-                t0 = time.perf_counter()
                 child = node.expand(self.copy_board(board_state), next_colour, move)
-                self.t_copy += time.perf_counter() - t0
-
                 node = child
             self.t_expand += time.perf_counter() - t0   
             
@@ -203,6 +208,10 @@ class MyAgent(AgentBase):
                 board_state.set_tile_colour(legal_move.x, legal_move.y, rollout_colour) #Colour random legal move
 
                 rollout_colour = Colour.RED if rollout_colour == Colour.BLUE else Colour.BLUE
+                
+                if board_state.has_ended(rollout_colour):
+                    break
+                
             self.t_sim += time.perf_counter() - t0    
                
 
@@ -395,21 +404,60 @@ class MyAgent(AgentBase):
         
         terminal_move = self.apply_terminal_protocol(board, choices)
         if terminal_move is not None:
-            self._choices.remove(terminal_move)
             print("FOUND FORCED WIN...MOVING TO TAKE/BLOCK...")
             return Move(terminal_move.x, terminal_move.y)
 
         protect_bridge_move = self.check_bridge_invasion(opp_move)
         if protect_bridge_move and protect_bridge_move in self._choices:
             print("FOUND THREATENED BRIDGE...MOVING TO RETAIN...")
-            self._choices.remove(protect_bridge_move)
             return Move(_x=protect_bridge_move.x, _y=protect_bridge_move.y)
         
         
     def update_bridges(self, board : Board, move : Move):
         
-        t0 = time.perf_counter()
         self.remove_broken_bridges(move)
         self.check_edge_bridges(board, move)
         self.check_bridges(board, move)
-        self.forced += time.perf_counter() - t0
+
+
+    def make_legal_move(
+    self,
+    proposed: Move | None,
+    board: Board,
+    choices: list[Move],
+    turn: int, ) -> Move:
+        """
+        Final safety check before returning a move to the engine.
+        Always returns a legal Move.
+        """
+
+        # --- 1. Fallback: no proposal ---
+        if proposed is None:
+            return random.choice(choices)
+
+        # --- 2. Swap move handling ---
+        if proposed.x == -1 and proposed.y == -1:
+            # Swap is only legal on turn 2
+            if turn == 2:
+                return proposed
+            # Otherwise illegal → fallback
+            return random.choice(choices)
+
+        x, y = proposed.x, proposed.y
+        size = board.size
+
+        # --- 3. Bounds check ---
+        if not (0 <= x < size and 0 <= y < size):
+            return random.choice(choices)
+
+        # --- 4. Occupancy check ---
+        if board.tiles[x][y].colour is not None:
+            return random.choice(choices)
+
+        # --- 5. Consistency with choices list ---
+        # (important: engine legality + your internal state)
+        if proposed not in choices:
+            return random.choice(choices)
+
+        # --- 6. Passed all checks ---
+        return proposed
