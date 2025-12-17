@@ -14,14 +14,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "-p1",
         "--player1",
-        default="agents.Group14.MyAgentBest MyAgentBest", #"agents.Group14.MyAgent MyAgent"
+        default="agents.Group14.MyAgent MyAgent", #"agents.Group14.MyAgent MyAgent"
         type=str,
         help="Specify the player 1 agent, format: agents.GroupX.AgentFile AgentClassName .e.g. agents.Group0.NaiveAgent NaiveAgent",
     )
     parser.add_argument(
         "-p1Name",
         "--player1Name",
-        default="MyAgentBest", #"Was Group 14"
+        default="MyAgent", #"Was Group 14"
         type=str,
         help="Specify the player 1 name",
     )

@@ -128,7 +128,7 @@ class MyAgent(AgentBase):
         
         self.total += time.perf_counter() - t0
         
-        self.others += self.total - ( self.t_copy + self.t_select + self.t_expand + self.t_sim + self.t_backprop )
+        others = self.total - ( self.t_copy + self.t_select + self.t_expand + self.t_sim + self.t_backprop + self.forced)
 
         print("\n=== MCTS PROFILE ===")
         print(f"Rollouts: {self.rollouts}")
@@ -138,7 +138,7 @@ class MyAgent(AgentBase):
         print(f"simulation: {self.t_sim/self.total:.2%}")
         print(f"backprop:   {self.t_backprop/self.total:.2%}")
         print(f"forced:   {self.forced/self.total:.2%}")
-        print(f"Other:  {self.others/self.total:.2%}")
+        print(f"Other:  {others/self.total:.2%}")
         print("====================\n")
 
         
@@ -149,6 +149,7 @@ class MyAgent(AgentBase):
     def MCTS(self,choices,board) -> Move:
         root = Node(self.copy_board(board),self.colour, choices, move=None,parent=None)
         for i in range(5000):
+            self.rollouts += 1
             node = root
             t0 = time.perf_counter()
             board_state = self.copy_board(board)
