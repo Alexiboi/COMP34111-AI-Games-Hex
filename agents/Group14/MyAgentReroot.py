@@ -7,7 +7,7 @@ from src.Move import Move
 #from . import Node
 from .Node import Node
 
-class MyAgent_Ale(AgentBase):
+class MyAgentReroot(AgentBase):
     """This class describes the default Hex agent. It will randomly send a
     valid move at each turn, and it will choose to swap with a 50% chance.
 
@@ -16,17 +16,34 @@ class MyAgent_Ale(AgentBase):
     You must implement the make_move method to make the agent functional.
     You CANNOT modify the AgentBase class, otherwise your agent might not function.
     """
-    _iterations: int = 100
+    _iterations: int = 300
     _choices: list[Move]
     _board_size: int = 11
+    virtual_bridges = []
+    _root: Node | None
+    
+    #All moves that should be swapped on turn 2
+    swappable_moves = [
+        Move(5, 5),
+        Move(4, 5),
+        Move(6, 5),
+        Move(5, 4),
+        Move(5, 6),
+        Move(4, 6),
+        Move(6, 4),
+    ]
+
 
     def __init__(self, colour: Colour):
         super().__init__(colour)
         self._choices = [
             (i, j) for i in range(self._board_size) for j in range(self._board_size)
         ]
+        self._hexes = self._board_size * self._board_size
+        self._root = None
+
         
-        self.legal_moves_count = self._board_size * self._board_size
+        
 
 
     #COPY BOARD THROUGH AGENT, move if it is allowed to copy board through Board
@@ -56,97 +73,21 @@ class MyAgent_Ale(AgentBase):
         Returns:
             Move: The agent's move
         """
-        #SWAP i guess
-        if turn == 1:
-            pass
+        print("MAKING MOVE")
+        #SWAP
+        if turn == 2:
+            for move in self.swappable_moves:
+                if move == opp_move:
+                    return Move(-1, -1)
 
         #Remove moves made by other player
         if opp_move is not None:
             coord = opp_move._x, opp_move._y 
             if coord in self._choices:
                 self._choices.remove(coord)
-                self.legal_moves_count -= 1
 
-        #Find best move
-        best_move = self.MCTS(self._choices,board)
-        
-        #Remove moves made by agent
-        self._choices.remove(best_move)
-        best_move = Move(_x = best_move[0], _y = best_move[1])
-        return best_move
-    
 
-    def MCTS(self,choices,board):
-        root = Node(self.copy_board(board),self.colour, choices, move=None,parent=None)
-        for i in range(5000):
-            node = root
-            board_state = self.copy_board(board)
-
-            #SELECTION
-            #Check all untried nodes and node is non-terminal
-            while node.untried_moves == [] and node.child_nodes:
-                child = node.best_child()
-                move = child.move
-                board_state.set_tile_colour(move[0], move[1], node.colour)  # Use parent node's colour
-                node = child
-            
-        
-            #EXPANSION
-            #Add an extra child
-            if node.untried_moves:
-                move = random.choice(node.untried_moves)
-                #next_colour = self.opp_colour()
-                next_colour = Colour.BLUE if node.colour == Colour.RED else Colour.RED
-                #print(f"next colour: {next_colour}")
-                board_state.set_tile_colour(move[0], move[1], node.colour)
-                child = node.expand(self.copy_board(board_state), next_colour, move)
-                node = child
-            
-
-            #SIMULATION
-
-            rollout_colour = node.colour             
-             # --- FIX: Generate all possible moves, remove those already played ---
-            all_possible_moves = [(x, y) for x in range(board.size) for y in range(board.size)]
-            played_moves = [
-                (x, y)
-                for x in range(board.size)
-                for y in range(board.size)
-                if board_state.tiles[x][y].colour != None
-            ]
-            rollout_moves = [move for move in all_possible_moves if move not in played_moves]
-
-            random.shuffle(rollout_moves)
-            for legal_move in rollout_moves:
-                board_state.set_tile_colour(legal_move[0], legal_move[1], rollout_colour) #Colour random legal move
-
-                rollout_colour = Colour.RED if rollout_colour == Colour.BLUE else Colour.BLUE
-                
-               
-
-            #BACKPROPAGATION
-            # has_ended updates the board_state.winner in the method so they need to be called
-            # Could be more efficient
-            if board_state.has_ended(Colour.RED):
-                # print(f"game ended winner is {board_state.get_winner()}")
-                pass  
-            elif board_state.has_ended(Colour.BLUE):
-                #print(f"game ended winner is {board_state.get_winner()}")
-                pass
-            else:
-                #print(f"game ended winner is {board_state.get_winner()}") 
-                pass
-            winner = board_state.get_winner()
-            
-            
-            node.backpropagation(winner)
-          
-        best_child = max(root.child_nodes, key=lambda c: c.visits)
-        return best_child.move
-    
-    def set_iterations(self, turn: int, mult_factor : int | float = 1.0):
         empty_ratio = len(self._choices) / (self._hexes)
-        
         if turn == 1:
             self._iterations = int(60000 / 4)
 
@@ -170,11 +111,93 @@ class MyAgent_Ale(AgentBase):
                 self._iterations = int(6000 / 4)
             else:
                 self._iterations = int(4000 / 4)
-                
-        self._iterations = int(self._iterations*mult_factor)
+        
+        self._iterations = int(self._iterations/2)        
+        
+        # Advance tree with opponent move (re-rooting)
+        if opp_move is not None and self._root is not None:
+            opp_coord = (opp_move._x, opp_move._y)
+
+            for child in self._root.child_nodes:
+                print((child.move.__str__(), opp_coord) )
+                if child.move == opp_coord:
+                    print("REROOTING...")
+                    self._root = child
+                    self._root.parent = None
+                    break
+            else:
+                # Opponent move not explored → discard tree
+                self._root = None
+
+        
+        #Find best move
+        best_move = self.MCTS(self._choices,board)
+        
+        #Remove moves made by agent
+        self._choices.remove(best_move)
+        best_move = Move(_x = best_move[0], _y = best_move[1])
+        return best_move
+    
+
+    def MCTS(self,choices,board):
+
+        if self._root is None:
+            print("Creating new root...")
+            self._root = Node(
+                self.copy_board(board),
+                self.colour,
+                choices,
+                move=None,
+                parent=None
+            )
+
+        root = self._root
+        for i in range(self._iterations):
+            node = root
+            board_state = self.copy_board(board)
+
+            #SELECTION
+            #Check all untried nodes and node is non-terminal
+            while node.untried_moves == [] and node.child_nodes:
+                node = node.best_child()
+                move = node.move
+                board_state.set_tile_colour(move[0], move[1], node.colour)
+
+            #EXPANSION
+            #Add an extra child
+            if node.untried_moves:
+                move = random.choice(node.untried_moves)
+                next_colour = self.opp_colour()
+                board_state.set_tile_colour(move[0], move[1], node.colour)
+                child = node.expand(self.copy_board(board_state), next_colour, move)
+                node = child
+
+            #SIMULATION
+            rollout_colour = node.colour 
+            rollout_moves = node.untried_moves[:]  # remaining legal moves
+
+            random.shuffle(rollout_moves)
+
+            for legal_move in rollout_moves:
+                board_state.set_tile_colour(legal_move[0], legal_move[1], rollout_colour) #Colour random legal move
+                rollout_colour = self.opp_colour()
+
+                if board_state.has_ended(rollout_colour): #Check if game has ended
+                    break
+
+            #BACKPROPAGATION
+            winner = board_state.get_winner()
+            node.backpropagation(winner)
+
+        if not root.child_nodes:
+            # Fallback: no explored children
+            return random.choice(choices)
+
+
+        #Return most visited node
+        best_child = max(root.child_nodes, key=lambda c: c.visits)
+        self._root = best_child
+        self._root.parent = None
+        return best_child.move
             
-# Helper class to view game tree for debugging
-def print_tree(node, depth=0):
-    print("  " * depth + f"Move: {node.move}, Wins: {node.wins}, Visits: {node.visits}")
-    for child in getattr(node, "child_nodes", []):
-        print_tree(child, depth + 1)
+    
