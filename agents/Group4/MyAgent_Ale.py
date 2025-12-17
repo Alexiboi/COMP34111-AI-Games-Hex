@@ -84,9 +84,6 @@ class MyAgent_Ale(AgentBase):
 
             #SELECTION
             #Check all untried nodes and node is non-terminal
-            #print(f"untried moves for parent node {node.untried_moves}")
-            #for child in node.child_nodes:
-                #print(f"{child.untried_moves}")
             while node.untried_moves == [] and node.child_nodes:
                 child = node.best_child()
                 move = child.move
@@ -94,9 +91,6 @@ class MyAgent_Ale(AgentBase):
                 node = child
             
         
-            #print(f"move of node after selection {node.move}")
-            #print(f"untried moves for node after selection {node.untried_moves}")
-            #print(f"colour placed after selection {node.colour}")
             #EXPANSION
             #Add an extra child
             if node.untried_moves:
@@ -110,10 +104,8 @@ class MyAgent_Ale(AgentBase):
             
 
             #SIMULATION
-            #print(f"node.colour after expansion {node.colour}")
-            rollout_colour = node.colour 
-            #rollout_moves = node.untried_moves[:]  # remaining legal moves # shouldn't be node.untried_moves should be 
-            
+
+            rollout_colour = node.colour             
              # --- FIX: Generate all possible moves, remove those already played ---
             all_possible_moves = [(x, y) for x in range(board.size) for y in range(board.size)]
             played_moves = [
@@ -124,43 +116,35 @@ class MyAgent_Ale(AgentBase):
             ]
             rollout_moves = [move for move in all_possible_moves if move not in played_moves]
 
-            #rollout_moves = 
             random.shuffle(rollout_moves)
-            #print(f"moves to be played in rollout (should be every move except one chosen for node) {rollout_moves}")
             for legal_move in rollout_moves:
                 board_state.set_tile_colour(legal_move[0], legal_move[1], rollout_colour) #Colour random legal move
-                #print(f"board_state throughout rollout\n: {board_state}")
-                # if board_state.has_ended(rollout_colour): #Check if game has ended
-                #     print(f"game ended in for loop winner is {board_state.get_winner()}")
-                #     break
-            
-                #rollout_colour = self.opp_colour() # error here doesnt swap colour
-                #print(f"rollout colour before swap {rollout_colour}")
+
                 rollout_colour = Colour.RED if rollout_colour == Colour.BLUE else Colour.BLUE
                 
                
 
             #BACKPROPAGATION
-            # another error doesn't compute winner correctly
+            # has_ended updates the board_state.winner in the method so they need to be called
+            # Could be more efficient
             if board_state.has_ended(Colour.RED):
-                print(f"game ended winner is {board_state.get_winner()}")  
+                # print(f"game ended winner is {board_state.get_winner()}")
+                pass  
             elif board_state.has_ended(Colour.BLUE):
-                print(f"game ended winner is {board_state.get_winner()}")
+                #print(f"game ended winner is {board_state.get_winner()}")
+                pass
             else:
-                print(f"game ended winner is {board_state.get_winner()}") 
+                #print(f"game ended winner is {board_state.get_winner()}") 
+                pass
             winner = board_state.get_winner()
-            #print(f"winner is {winner}")
-            #print(f"node visits and wins before back prop: {node.visits}, {node.wins}")
+            
             
             node.backpropagation(winner)
-            #print(f"node visits and wins after back prop: {node.visits}, {node.wins}")
-            #print(f"node's parent should be the colour of the move that was played: {node.parent.colour}")
-            #print_tree(root)
-        #Return most visited node
-       
+          
         best_child = max(root.child_nodes, key=lambda c: c.visits)
         return best_child.move
             
+# Helper class to view game tree for debugging
 def print_tree(node, depth=0):
     print("  " * depth + f"Move: {node.move}, Wins: {node.wins}, Visits: {node.visits}")
     for child in getattr(node, "child_nodes", []):
