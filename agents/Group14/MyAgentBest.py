@@ -6,6 +6,7 @@ from src.Board import Board
 from src.Colour import Colour
 from src.Move import Move
 from .Node import Node
+import time
 
 HEX_DIRS = [
     (-1, 0), (1, 0),
@@ -27,6 +28,7 @@ class MyAgentBest(AgentBase):
     _choices: list[Move]
     _board_size: int = 11
     virtual_bridges: list[VirtualBridge] = []
+    
 
     def __init__(self, colour: Colour):
         super().__init__(colour)
@@ -35,6 +37,17 @@ class MyAgentBest(AgentBase):
         ]
         self._hexes = self._board_size * self._board_size
         self.virtual_bridges = []
+        
+        self.t_copy = 0.0
+        self.t_select = 0.0
+        self.t_expand = 0.0
+        self.t_sim = 0.0
+        self.t_backprop = 0.0
+        self.rollouts = 0
+        self.forced = 0.0
+        self.others = 0.0
+        self.total = 0.0
+
         
     #COPY BOARD THROUGH AGENT, move if it is allowed to copy board through Board
     def copy_board(self, board: Board) -> Board:
@@ -61,7 +74,7 @@ class MyAgentBest(AgentBase):
         Returns:
             Move: The agent's move
         """
-        
+        t0 = time.perf_counter()
         # TURN 1: we move first (opp_move is None by contract)
         if opp_move == None:
             safe_moves = [m for m in safe_first_moves if m in self._choices]
@@ -100,7 +113,7 @@ class MyAgentBest(AgentBase):
             self.update_bridges(board, forced_move)
             return forced_move
 
-                 
+        
         
         #Find best move
         best_move = self.MCTS(self._choices,board)
@@ -113,6 +126,22 @@ class MyAgentBest(AgentBase):
         # check bridges using tuple
         self.update_bridges(board, best_move)
         
+        self.total += time.perf_counter() - t0
+        
+        self.others += self.total - ( self.t_copy + self.t_select + self.t_expand + self.t_sim + self.t_backprop )
+
+        print("\n=== MCTS PROFILE ===")
+        print(f"Rollouts: {self.rollouts}")
+        print(f"copy_board: {self.t_copy/self.total:.2%}")
+        print(f"selection:  {self.t_select/self.total:.2%}")
+        print(f"expansion:  {self.t_expand/self.total:.2%}")
+        print(f"simulation: {self.t_sim/self.total:.2%}")
+        print(f"backprop:   {self.t_backprop/self.total:.2%}")
+        print(f"forced:   {self.forced/self.total:.2%}")
+        print(f"Other:  {self.others/self.total:.2%}")
+        print("====================\n")
+
+        
         # only now convert to Move
         return Move(_x=best_move.x, _y=best_move.y)
     
@@ -120,26 +149,38 @@ class MyAgentBest(AgentBase):
     def MCTS(self, choices: list[Move], board : Board):
         root = Node(self.copy_board(board),self.colour,choices, move=None,parent=None)
         for i in range(self._iterations):
+            self.rollouts += 1
             node = root
+            t0 = time.perf_counter()
             board_state = self.copy_board(board)
-
+            self.t_copy += time.perf_counter() - t0
+            
             #SELECTION
             #Check all untried nodes and node is non-terminal
+            t0 = time.perf_counter()
+
             while node.untried_moves == [] and node.child_nodes:
                 node = node.best_child()
                 move = node.move
                 board_state.set_tile_colour(move.x, move.y, node.colour)
+                
+            self.t_select += time.perf_counter() - t0
 
             #EXPANSION
             #Add an extra child
+            t0 = time.perf_counter()
             if node.untried_moves:
                 move = random.choice(node.untried_moves)
                 next_colour = self.opp_colour()
                 board_state.set_tile_colour(move.x, move.y, node.colour)
                 child = node.expand(self.copy_board(board_state), next_colour, move)
                 node = child
+            self.t_expand += time.perf_counter() - t0
+
 
             #SIMULATION
+            t0 = time.perf_counter()
+
             rollout_colour = node.colour 
             rollout_moves = node.untried_moves[:]  # remaining legal moves
 
@@ -151,10 +192,16 @@ class MyAgentBest(AgentBase):
 
                 if board_state.has_ended(rollout_colour): #Check if game has ended
                     break
+            
+            self.t_sim += time.perf_counter() - t0
+
+            t0 = time.perf_counter()
 
             #BACKPROPAGATION
             winner = board_state.get_winner()
             node.backpropagation(winner)
+            self.t_backprop += time.perf_counter() - t0
+
 
         #Return most visited node
         best_child = max(root.child_nodes, key=lambda c: c.visits)
@@ -348,6 +395,8 @@ class MyAgentBest(AgentBase):
         
     def update_bridges(self, board : Board, move : Move):
         
+        t0 = time.perf_counter()
         self.remove_broken_bridges(move)
         self.check_edge_bridges(board, move)
         self.check_bridges(board, move)
+        self.forced += time.perf_counter() - t0
