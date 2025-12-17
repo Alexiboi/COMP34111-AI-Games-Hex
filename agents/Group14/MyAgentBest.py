@@ -97,7 +97,7 @@ class MyAgentBest(AgentBase):
         forced_move = self.forced_move(board, self._choices, opp_move)
         
         if forced_move:
-            self.check_virtual_bridges(board, forced_move)
+            self.update_bridges(board, forced_move)
             return forced_move
 
                  
@@ -111,8 +111,8 @@ class MyAgentBest(AgentBase):
         board.set_tile_colour(best_move.x, best_move.y, self.colour)
 
         # check bridges using tuple
-        self.check_virtual_bridges(board, best_move)
-
+        self.update_bridges(board, best_move)
+        
         # only now convert to Move
         return Move(_x=best_move.x, _y=best_move.y)
     
@@ -160,9 +160,58 @@ class MyAgentBest(AgentBase):
         best_child = max(root.child_nodes, key=lambda c: c.visits)
         return best_child.move
             
+    def check_edge_bridges(self, board: Board, our_move: Move):
+        x, y = our_move.x, our_move.y
+        N = self._board_size
+
+        # Determine connection axis
+        # RED connects top/bottom → x axis
+        # BLUE connects left/right → y axis
+        if self.colour == Colour.RED:
+            axis = 0  # x
+        else:
+            axis = 1  # y
+
+        coord = (x, y)[axis]
+
+        # Determine which goal edge we're near
+        if coord == 1:
+            edge_coord = 0
+        elif coord == N - 2:
+            edge_coord = N - 1
+        else:
+            return  # not near a relevant goal edge
+
+        links : list[Move] = []
+
+        # iterate possible bridge links along the other axis
+        for d in (-1, 0, 1):
+            other_coord = (x, y)[1 - axis] + d
+            if 0 <= other_coord < N:
+                pos = (
+                    (edge_coord, other_coord) if axis == 0
+                    else (other_coord, edge_coord)
+                )
+                if board.tiles[pos[0]][pos[1]].colour is None:
+                    links.append(Move(*pos))
+
+        if len(links) == 2:
+            
+            print("  *** EDGE BRIDGE FOUND ***")
+                    
+            print("Between:", (x,y))
+            print("Link = ", links)
+            
+            self.virtual_bridges.append(
+                VirtualBridge(
+                    our_move,
+                    None,          # edge-side endpoint
+                    links[:2]
+                )
+            )
+
     
-    
-    def check_virtual_bridges(self, board: Board, our_move: Move):
+    def check_bridges(self, board: Board, our_move: Move):
 
         print("OUR MOVE:", our_move)
         x, y = our_move.x, our_move.y
@@ -226,20 +275,6 @@ class MyAgentBest(AgentBase):
                     self.virtual_bridges.append(bridge)
 
 
-        
-    def remove_broken_virtual_bridges(self, move: Move) -> None:
-        mx, my = move.x, move.y
-
-        self.virtual_bridges = [
-            bridge
-            for bridge in self.virtual_bridges
-            if not any(
-                mx == link.x and my == link.y
-                for link in bridge.links
-            )
-        ]
-
-
     def neighbours(self, x : int, y : int):
         for dx, dy in HEX_DIRS:
             nx, ny = x + dx, y + dy
@@ -272,7 +307,8 @@ class MyAgentBest(AgentBase):
 
         return RETALIATION_MOVE
                     
-            
+    def remove_broken_bridges(self, move : Move):
+        _ = self.check_bridge_invasion(move) 
 
             
 
@@ -296,6 +332,7 @@ class MyAgentBest(AgentBase):
         return None
 
     def forced_move(self, board : Board, choices : list[Move], opp_move : Move) -> Move | None:
+        
         terminal_move = self.apply_terminal_protocol(board, choices)
         if terminal_move is not None:
             self._choices.remove(terminal_move)
@@ -307,3 +344,10 @@ class MyAgentBest(AgentBase):
             print("FOUND THREATENED BRIDGE...MOVING TO RETAIN...")
             self._choices.remove(protect_bridge_move)
             return Move(_x=protect_bridge_move.x, _y=protect_bridge_move.y)
+        
+        
+    def update_bridges(self, board : Board, move : Move):
+        
+        self.remove_broken_bridges(move)
+        self.check_edge_bridges(board, move)
+        self.check_bridges(board, move)
