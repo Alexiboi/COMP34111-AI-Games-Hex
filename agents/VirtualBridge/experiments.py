@@ -4,37 +4,43 @@ import random
 import time
 import csv
 from datetime import datetime
+import argparse
 
-AGENT = "agents.Group14.MyAgent MyAgent"
-OPPONENT = "agents.Group14.MyAgentReroot MyAgentReroot"
-AGENTNAME = AGENT.split()[-1]
-OPPONENTNAME = OPPONENT.split()[-1]
+parser = argparse.ArgumentParser(description="Run experiments for Hex agents")
+parser.add_argument("-a", required=True, help="Player 1 agent name (e.g MyAgent)")
+parser.add_argument("-o", required=True, help="Player 2 agent name (e.g MyAgentTerminal)")
+parser.add_argument("-g", type=int, required=True, help="Number of games to play (even)")
+args = parser.parse_args()
 
-SEEDS = [0]
-GAMES_PER_SEED = 20
+AGENTNAME = args.a
+OPPONENTNAME = args.o
+GAMES = args.g
+
+if GAMES % 2 == 1:
+    raise KeyError("Games must be even")
+
+AGENT = f"agents.Group14.{AGENTNAME} {AGENTNAME}"
+OPPONENT = f"agents.Group14.{OPPONENTNAME} {OPPONENTNAME}"
+
 LOG_DIR = "agents/Group14/logs"
 
 os.makedirs(LOG_DIR, exist_ok=True)
 
 
-def run_game(seed: int, game_id: int):
+def run_game(game_id: int, agentFirst):
     logfile = f"{LOG_DIR}/game_{game_id}.log"
 
-    env = os.environ.copy()
-    env["PYTHONHASHSEED"] = str(seed)
-    random.seed(seed)
 
     start_time = time.time()
     subprocess.run(
         [
             "python", "Hex.py",
-            "-p1", AGENT,
-            "-p2", OPPONENT,
-            "-p1Name", AGENT,
-            "-p2Name", OPPONENT,
+            "-p1", AGENT if agentFirst else OPPONENT,
+            "-p2", OPPONENT if agentFirst else AGENT,
+            "-p1Name", AGENTNAME if agentFirst else OPPONENTNAME,
+            "-p2Name", OPPONENTNAME if agentFirst else AGENTNAME,
             "-l", logfile
         ],
-        env=env,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         check=True
@@ -70,10 +76,10 @@ def main():
     total_wins = 0
     total_time = 0
     
-    for seed in SEEDS:
-        print(f"Seed {seed}")
-        for game in range(1, GAMES_PER_SEED + 1):
-            winner, game_time = run_game(seed, game)
+    try:
+        for game in range(1, GAMES + 1):
+
+            winner, game_time = run_game(game, game <= GAMES/2)
             total_games += 1
             total_time += game_time
             
@@ -84,13 +90,16 @@ def main():
                 result = "LOSS"
             
             print(f"  Game {game} done - {result} ({game_time:.2f}s)")
+            
+    except KeyboardInterrupt:
+        print("\nKeyboard interrupt received — stopping early.")
 
     win_rate = (total_wins / total_games * 100) if total_games > 0 else 0
     avg_game_time = total_time / total_games if total_games > 0 else 0
     
     # Write results to CSV
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    csv_filename = f"agents/Group14/logs/results_{timestamp}.csv"
+    csv_filename = f"agents/Group14/logs/{AGENTNAME}vs{OPPONENTNAME}_results_{timestamp}.csv"
     
     with open(csv_filename, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)

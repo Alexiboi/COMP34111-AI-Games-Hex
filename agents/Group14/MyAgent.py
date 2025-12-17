@@ -7,7 +7,7 @@ from src.Move import Move
 #from . import Node
 from .Node import Node
 
-class MyAgent_Ale(AgentBase):
+class MyAgent(AgentBase):
     """This class describes the default Hex agent. It will randomly send a
     valid move at each turn, and it will choose to swap with a 50% chance.
 
@@ -23,7 +23,7 @@ class MyAgent_Ale(AgentBase):
     def __init__(self, colour: Colour):
         super().__init__(colour)
         self._choices = [
-            (i, j) for i in range(self._board_size) for j in range(self._board_size)
+            Move(i, j) for i in range(self._board_size) for j in range(self._board_size)
         ]
         
         self.legal_moves_count = self._board_size * self._board_size
@@ -72,11 +72,10 @@ class MyAgent_Ale(AgentBase):
         
         #Remove moves made by agent
         self._choices.remove(best_move)
-        best_move = Move(_x = best_move[0], _y = best_move[1])
         return best_move
     
 
-    def MCTS(self,choices,board):
+    def MCTS(self,choices,board) -> Move:
         root = Node(self.copy_board(board),self.colour, choices, move=None,parent=None)
         for i in range(5000):
             node = root
@@ -87,7 +86,7 @@ class MyAgent_Ale(AgentBase):
             while node.untried_moves == [] and node.child_nodes:
                 child = node.best_child()
                 move = child.move
-                board_state.set_tile_colour(move[0], move[1], node.colour)  # Use parent node's colour
+                board_state.set_tile_colour(move.x, move.y, node.colour)  # Use parent node's colour
                 node = child
             
         

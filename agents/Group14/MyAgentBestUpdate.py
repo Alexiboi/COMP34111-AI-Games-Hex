@@ -15,7 +15,7 @@ HEX_DIRS = [
 ]
 safe_first_moves = [Move(0, 1), Move(0, 9), Move(10, 1), Move(10, 9)] 
 
-class MyAgentBest(AgentBase):
+class MyAgentBestUpdate(AgentBase):
     """This class describes the default Hex agent. It will randomly send a
     valid move at each turn, and it will choose to swap with a 50% chance.
 
@@ -146,64 +146,76 @@ class MyAgentBest(AgentBase):
         return Move(_x=best_move.x, _y=best_move.y)
     
 
-    def MCTS(self, choices: list[Move], board : Board) -> Move:
+    def MCTS(self,choices,board) -> Move:
         root = Node(self.copy_board(board),self.colour, choices, move=None,parent=None)
-        for i in range(self._iterations):
-            self.rollouts += 1
+        for i in range(5000):
             node = root
             t0 = time.perf_counter()
             board_state = self.copy_board(board)
             self.t_copy += time.perf_counter() - t0
-            
+
+
             #SELECTION
             #Check all untried nodes and node is non-terminal
             t0 = time.perf_counter()
-
             while node.untried_moves == [] and node.child_nodes:
-                node = node.best_child()
-                move : Move = node.move # type: ignore
-                board_state.set_tile_colour(move.x, move.y, node.colour)
-                
+                child = node.best_child()
+                move = child.move
+                board_state.set_tile_colour(move.x, move.y, node.colour)  # type: ignore # Use parent node's colour
+                node = child
             self.t_select += time.perf_counter() - t0
-
+            
+        
             #EXPANSION
             #Add an extra child
-            t0 = time.perf_counter()
+            t0 = time.perf_counter()    
             if node.untried_moves:
                 move = random.choice(node.untried_moves)
-                next_colour = self.opp_colour()
-                board_state.set_tile_colour(move.x, move.y, node.colour)
+                #next_colour = self.opp_colour()
+                next_colour = Colour.BLUE if node.colour == Colour.RED else Colour.RED
+                #print(f"next colour: {next_colour}")
+                board_state.set_tile_colour(move.x, move.x, node.colour)
+                
+                t0 = time.perf_counter()
                 child = node.expand(self.copy_board(board_state), next_colour, move)
-                node = child
-            self.t_expand += time.perf_counter() - t0
+                self.t_copy += time.perf_counter() - t0
 
+                node = child
+            self.t_expand += time.perf_counter() - t0   
+            
 
             #SIMULATION
             t0 = time.perf_counter()
-
-            rollout_colour = node.colour 
-            rollout_moves = node.untried_moves[:]  # remaining legal moves
+            rollout_colour = node.colour             
+             # --- FIX: Generate all possible moves, remove those already played ---
+            all_possible_moves = [Move(x, y) for x in range(board.size) for y in range(board.size)]
+            played_moves = [
+                Move(x, y)
+                for x in range(board.size)
+                for y in range(board.size)
+                if board_state.tiles[x][y].colour != None
+            ]
+            rollout_moves = [move for move in all_possible_moves if move not in played_moves]
 
             random.shuffle(rollout_moves)
-
             for legal_move in rollout_moves:
                 board_state.set_tile_colour(legal_move.x, legal_move.y, rollout_colour) #Colour random legal move
-                rollout_colour = self.opp_colour()
 
-                if board_state.has_ended(rollout_colour): #Check if game has ended
-                    break
-            
-            self.t_sim += time.perf_counter() - t0
-
-            t0 = time.perf_counter()
+                rollout_colour = Colour.RED if rollout_colour == Colour.BLUE else Colour.BLUE
+            self.t_sim += time.perf_counter() - t0    
+               
 
             #BACKPROPAGATION
+            # has_ended updates the board_state.winner in the method so they need to be called
+            # Could be more efficient
+            t0 = time.perf_counter()
+            
             winner = board_state.get_winner()
+
             node.backpropagation(winner)
+            
             self.t_backprop += time.perf_counter() - t0
-
-
-        #Return most visited node
+            
         best_child = max(root.child_nodes, key=lambda c: c.visits)
         return best_child.move # type: ignore
             
