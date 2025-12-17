@@ -36,15 +36,13 @@ class MyAgent(AgentBase):
         self._hexes = self._board_size * self._board_size
         self.virtual_bridges = []
         
-        self.t_copy = 0.0
-        self.t_select = 0.0
-        self.t_expand = 0.0
-        self.t_sim = 0.0
-        self.t_backprop = 0.0
-        self.rollouts = 0
-        self.forced = 0.0
-        self.others = 0.0
-        self.total = 0.0
+        self.time_used = 0.0
+        self.TOTAL_TIME = 300.0      # 5 minutes
+        self.SAFETY = 0.5            # seconds
+        self.MAX_PER_MOVE = 0.2      # hard cap per move
+        self.MIN_PER_MOVE = 0.01     # panic floor
+
+        
 
         
     #COPY BOARD THROUGH AGENT, move if it is allowed to copy board through Board
@@ -73,12 +71,25 @@ class MyAgent(AgentBase):
             Move: The agent's move
         """
         t0 = time.perf_counter()
+        remaining = self.TOTAL_TIME - self.time_used
+
+        print(f"Making move...{remaining} seconds left")
+        
+        if remaining < self.SAFETY:
+            # panic: must not flag
+            move = random.choice(self._choices)
+            self._choices.remove(move)
+            self.time_used += time.perf_counter() - t0
+            return move
+
+
         # TURN 1: we move first (opp_move is None by contract)
         if opp_move == None:
             safe_moves = [m for m in safe_first_moves if m in self._choices]
             move = random.choice(safe_moves)
             safe_move = self.make_legal_move(move, board, self._choices, turn)
             self._choices.remove(safe_move)
+            self.time_used += time.perf_counter() - t0
             return safe_move
 
         # Case 1: opponent played a normal move
@@ -103,6 +114,7 @@ class MyAgent(AgentBase):
 
                 if is_central or is_strong_edge:
                     proposed_move = Move(-1, -1)
+                    self.time_used += time.perf_counter() - t0
                     return self.make_legal_move(proposed_move, board, self._choices, turn)
         
        
@@ -112,66 +124,55 @@ class MyAgent(AgentBase):
         if forced_move:
             safe_move = self.make_legal_move(forced_move, board, self._choices, turn)
             self._choices.remove(safe_move)
-            board.set_tile_colour(safe_move.x, safe_move.y, self.colour)
+            self.time_used += time.perf_counter() - t0
             return safe_move
+
+        # conservative estimate of remaining moves
+        estimated_moves_left = max(20, len(self._choices) // 2)
+
+        budget = (remaining - self.SAFETY) / estimated_moves_left
+        budget = min(budget, self.MAX_PER_MOVE)
+        budget = max(budget, self.MIN_PER_MOVE)
 
         
         
+        
         #Find best move
-        best_move = self.MCTS(self._choices, board)
+        best_move = self.MCTS(self._choices, board, budget)
         
         safe_move = self.make_legal_move(best_move, board, self._choices, turn)
         
         #Remove moves made by agent
         self._choices.remove(safe_move)
         
-        # update board for bridge detection
-        board.set_tile_colour(safe_move.x, safe_move.y, self.colour)
+        self.time_used += time.perf_counter() - t0
 
-        self.total += time.perf_counter() - t0
-        
-        others = self.total - ( self.t_copy + self.t_select + self.t_expand + self.t_sim + self.t_backprop + self.forced)
-
-        print("\n=== MCTS PROFILE ===")
-        print(f"Rollouts: {self.rollouts}")
-        print(f"copy_board: {self.t_copy/self.total:.2%}")
-        print(f"selection:  {self.t_select/self.total:.2%}")
-        print(f"expansion:  {self.t_expand/self.total:.2%}")
-        print(f"simulation: {self.t_sim/self.total:.2%}")
-        print(f"backprop:   {self.t_backprop/self.total:.2%}")
-        print(f"forced:   {self.forced/self.total:.2%}")
-        print(f"Other:  {others/self.total:.2%}")
-        print("====================\n")
-
-        
+       
         # only now convert to Move
         return safe_move
     
 
-    def MCTS(self,choices,board) -> Move:
+    def MCTS(self,choices,board, budget) -> Move:
+        start = time.perf_counter()
+        deadline = start + budget
         root = Node(self.copy_board(board),self.colour, choices, move=None,parent=None)
-        for i in range(self._iterations):
-            self.rollouts += 1
+
+        while time.perf_counter() < deadline:
             node = root
-            t0 = time.perf_counter()
             board_state = self.copy_board(board)
-            self.t_copy += time.perf_counter() - t0
 
 
             #SELECTION
             #Check all untried nodes and node is non-terminal
-            t0 = time.perf_counter()
             while node.untried_moves == [] and node.child_nodes:
                 child = node.best_child()
                 move = child.move
                 board_state.set_tile_colour(move.x, move.y, node.colour)  # type: ignore # Use parent node's colour
                 node = child
-            self.t_select += time.perf_counter() - t0
             
         
             #EXPANSION
             #Add an extra child
-            t0 = time.perf_counter()    
             if node.untried_moves:
                 move = random.choice(node.untried_moves)
                 #next_colour = self.opp_colour()
@@ -181,11 +182,9 @@ class MyAgent(AgentBase):
                 
                 child = node.expand(self.copy_board(board_state), next_colour, move)
                 node = child
-            self.t_expand += time.perf_counter() - t0   
             
 
             #SIMULATION
-            t0 = time.perf_counter()
             rollout_colour = node.colour             
              # --- FIX: Generate all possible moves, remove those already played ---
             all_possible_moves = [Move(x, y) for x in range(board.size) for y in range(board.size)]
@@ -208,19 +207,16 @@ class MyAgent(AgentBase):
                 
                 
                 
-            self.t_sim += time.perf_counter() - t0    
                
 
             #BACKPROPAGATION
             # has_ended updates the board_state.winner in the method so they need to be called
             # Could be more efficient
-            t0 = time.perf_counter()
             
             winner = board_state.get_winner()
 
             node.backpropagation(winner)
             
-            self.t_backprop += time.perf_counter() - t0
             
         best_child = max(root.child_nodes, key=lambda c: c.visits)
         return best_child.move # type: ignore
