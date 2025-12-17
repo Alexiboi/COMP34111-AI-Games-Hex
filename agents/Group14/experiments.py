@@ -20,6 +20,7 @@ if GAMES % 2 == 1:
     raise KeyError("Games must be even")
 
 AGENT = f"agents.Group14.{AGENTNAME} {AGENTNAME}"
+# OPPONENT = f"agents.Group14.{OPPONENTNAME} {OPPONENTNAME}"
 OPPONENT = f"agents.Group14.{OPPONENTNAME} {OPPONENTNAME}"
 
 LOG_DIR = "agents/Group14/logs"

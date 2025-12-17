@@ -1,1 +1,1 @@
-agents.Group3.PlayableAgent PlayableAgent
+agents.Group3.MyAgent_Ale MyAgent_Ale
