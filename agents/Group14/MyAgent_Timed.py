@@ -14,7 +14,7 @@ HEX_DIRS = [
 ]
 safe_first_moves = [Move(0, 1), Move(0, 9), Move(10, 1), Move(10, 9)] 
 
-class MyAgent_dan2Timed(AgentBase):
+class MyAgent_Timed(AgentBase):
     """This class describes the default Hex agent. It will randomly send a
     valid move at each turn, and it will choose to swap with a 50% chance.
 
@@ -23,7 +23,6 @@ class MyAgent_dan2Timed(AgentBase):
     You must implement the make_move method to make the agent functional.
     You CANNOT modify the AgentBase class, otherwise your agent might not function.
     """
-    _iterations: int = 30000
     _choices: list[Move]
     _board_size: int = 11
     
@@ -37,8 +36,9 @@ class MyAgent_dan2Timed(AgentBase):
         self.time_used = 0.0
         self.TOTAL_TIME = 300.0
         self.RESERVE = 2.0
-        self.MIN_BUDGET = 0.03
-        self.MAX_BUDGET = 2.0
+
+
+
         
         
         
@@ -72,7 +72,13 @@ class MyAgent_dan2Timed(AgentBase):
         t0 = time.perf_counter()
         remaining = self.TOTAL_TIME - self.time_used
         
+
         
+        if remaining <= self.RESERVE:
+            move = random.choice(self._choices)
+            self._choices.remove(move)
+            self.time_used += time.perf_counter() - t0
+            return move
 
         
         
@@ -124,13 +130,25 @@ class MyAgent_dan2Timed(AgentBase):
             return safe_move
 
         
-        moves_left_us = max(1, (len(self._choices) + 1) // 2)
+        # budget = min(max(base, self.MIN_BUDGET), self.MAX_BUDGET)
+        
+        remaining = self.TOTAL_TIME - self.time_used
 
-        base = (remaining - self.RESERVE) / moves_left_us
+        budget = remaining * 0.08   # 8%
 
-        budget = min(max(base, self.MIN_BUDGET), self.MAX_BUDGET)
+        # Safety clamp
+        budget = max(2.0, min(budget, 20.0))
+
+
+
+        
+        print(
+            f"remaining={remaining:.1f}s choices={len(self._choices)} "
+            f"budget={budget:.2f}s"
+        )
         
         #Find best move
+        print(f"MCTS running with budget: {budget}")
         best_move = self.MCTS(self._choices, board, deadline = time.perf_counter() + budget)
         
         safe_move = self.make_legal_move(best_move, board, self._choices, turn)

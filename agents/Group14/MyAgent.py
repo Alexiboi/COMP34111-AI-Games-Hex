@@ -23,7 +23,7 @@ class MyAgent(AgentBase):
     You must implement the make_move method to make the agent functional.
     You CANNOT modify the AgentBase class, otherwise your agent might not function.
     """
-    _iterations: int = 15000
+    _iterations: int = 30000
     _choices: list[Move]
     _board_size: int = 11
     
