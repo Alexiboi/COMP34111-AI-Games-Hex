@@ -56,7 +56,6 @@ class MyAgent_AMAF(AgentBase):
         Returns:
             Move: The agent's move
         """
-        print("calling myAgent_Ale")
         #SWAP i guess
         if turn == 1:
             pass
@@ -79,9 +78,10 @@ class MyAgent_AMAF(AgentBase):
 
     def MCTS(self,choices,board):
         root = Node(self.copy_board(board),self.colour, choices, move=None,parent=None)
-        for i in range(5000):
+        for i in range(10000):
             node = root
             board_state = self.copy_board(board)
+            path = [node] #Track the path for UCT backpropogation
 
             #SELECTION
             #Check all untried nodes and node is non-terminal
@@ -90,10 +90,12 @@ class MyAgent_AMAF(AgentBase):
                 move = child.move
                 board_state.set_tile_colour(move[0], move[1], node.colour)  # Use parent node's colour
                 node = child
+                path.append(node)
             
         
             #EXPANSION
             #Add an extra child
+            #print(f"node's untried moves: {node.untried_moves}")
             if node.untried_moves:
                 move = random.choice(node.untried_moves)
                 #next_colour = self.opp_colour()
@@ -102,6 +104,7 @@ class MyAgent_AMAF(AgentBase):
                 board_state.set_tile_colour(move[0], move[1], node.colour)
                 child = node.expand(self.copy_board(board_state), next_colour, move)
                 node = child
+                path.append(node)
             
 
             #SIMULATION
@@ -118,9 +121,13 @@ class MyAgent_AMAF(AgentBase):
             rollout_moves = [move for move in all_possible_moves if move not in played_moves]
 
             random.shuffle(rollout_moves)
+            #amaf_moves = set()
+            rollout_trace = []  # list of (move, played_by_colour)
             for legal_move in rollout_moves:
+                #print("board during rollout\n",board_state)
                 board_state.set_tile_colour(legal_move[0], legal_move[1], rollout_colour) #Colour random legal move
-
+                #amaf_moves.add(legal_move)
+                rollout_trace.append((legal_move, rollout_colour))
                 rollout_colour = Colour.RED if rollout_colour == Colour.BLUE else Colour.BLUE
                 
                
@@ -138,15 +145,51 @@ class MyAgent_AMAF(AgentBase):
                 #print(f"game ended winner is {board_state.get_winner()}") 
                 pass
             winner = board_state.get_winner()
-            
-            
-            node.backpropagation(winner)
-          
+            #print(f"game ended winner is {winner}")
+
+            tree_trace = []
+            for idx in range(1, len(path)):
+                move_played = path[idx].move
+                played_by = path[idx-1].colour   # parent was to-play and made the move
+                tree_trace.append((move_played, played_by))
+
+            full_trace = tree_trace + rollout_trace
+            backprop_with_amaf(path, full_trace, winner)
+            #node.backpropagation(winner, amaf_moves, root)
+            #print_tree(root)  
+        
         best_child = max(root.child_nodes, key=lambda c: c.visits)
         return best_child.move
             
+
+def backprop_with_amaf(path, full_trace, winner):
+    # path[0]=root depth 0, path[1]=depth1, ...
+    for d, node in enumerate(path):
+        # --- node stats (optional for root decision, but fine to keep) ---
+        node.visits += 1
+        # if you want node.wins to mean "wins for player who played into this node":
+        if node.parent is not None and winner == node.parent.colour:
+            node.wins += 1
+
+        # --- AMAF at this node ---
+        # moves that happened after this node's position
+        # index d in full_trace corresponds to the move played FROM this node (depth d -> d+1)
+        moves_after = full_trace[d:]  # includes the move chosen from this node
+
+        player_to_move = node.colour
+
+        for (mv, played_by) in moves_after:
+            if played_by != player_to_move:
+                continue
+
+            # only update if mv is legal from this node (either untried or already a child)
+            if (mv in node.untried_moves) or any(c.move == mv for c in node.child_nodes):
+                node.amaf_visits[mv] += 1
+                if winner == player_to_move:
+                    node.amaf_wins[mv] += 1
+
 # Helper class to view game tree for debugging
 def print_tree(node, depth=0):
-    print("  " * depth + f"Move: {node.move}, Wins: {node.wins}, Visits: {node.visits}")
+    print("  " * depth + f"Move: {node.move}, Wins: {node.wins}, Visits: {node.visits}, AMAF wins {node.amaf_wins}, AMAF visits {node.amaf_visits}")
     for child in getattr(node, "child_nodes", []):
         print_tree(child, depth + 1)

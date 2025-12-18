@@ -4,6 +4,7 @@ from src.AgentBase import AgentBase
 from src.Board import Board
 from src.Colour import Colour
 from src.Move import Move
+from collections import defaultdict
 
 
 class Node:
@@ -17,15 +18,55 @@ class Node:
         self.move:Move = move #move prior to node
         self.colour:Colour = colour #who made the move
         self.untried_moves = legal_moves[:]
+
+        # AMAF/RAVE statistics
+        # self.AMAF_visits: int = 0
+        # self.AMAF_wins: int = 0
+
+        self.amaf_visits = defaultdict(int)   # key: (x,y)
+        self.amaf_wins   = defaultdict(int)
         
 
     def ucb1(self, child):
         if child.visits == 0:
             return float("inf")
-        #TWEAK 1.41
-        return (child.wins / child.visits) + 1.41 * math.sqrt(
-            math.log(self.visits) / child.visits
-        )
+        
+        # UCT value (standard win rate)
+        q_uct = child.wins / child.visits
+
+        n_amaf = self.amaf_visits[child.move]
+        q_amaf = (self.amaf_wins[child.move] / n_amaf) if n_amaf > 0 else 0.5
+
+        n_uct = child.visits
+        k = 50  # typical RAVE bias constant
+        w = n_amaf / (n_uct + n_amaf + k)
+
+        return (1 - w) * q_uct + w * q_amaf
+
+
+        # # AMAF / RAVE value (win rate from AMAF stats)
+        # if child.AMAF_visits > 0:
+        #     q_amaf = child.AMAF_wins / child.AMAF_visits
+        # else:
+        #     q_amaf = 0.0
+
+        # # RAVE weight w based on ratio of AMAF visits to total visits
+        # # w in [0,1]; when AMAF_visits >> visits, w → 1
+        # n_uct = child.visits
+        # n_amaf = child.AMAF_visits
+        # if n_uct + n_amaf > 0:
+        #     w = n_amaf / (n_uct + n_amaf)
+        # else:
+        #     w = 0.0
+
+
+        # c = 0.0  # no exploration term as requested
+
+        # # AMAF / RAVE score
+        # score = (1.0 - w) * q_uct + w * q_amaf
+        # # + c * math.sqrt(math.log(self.visits) / child.visits)  # if you ever re‑enable exploration
+
+        # return score
 
     def best_child(self):
 
@@ -36,19 +77,29 @@ class Node:
         candidates = self.child_nodes[:]
         return max(candidates, key=self.ucb1)
     
-    def backpropagation(self, result):
+    def backpropagation(self, result, amaf_moves, root):
         node = self
         while node is not None:
             if node.move == None:
                 # means we're at root node
                 if node.colour == result:
                     node.wins += 1
+                    node.AMAF_wins += 1
                 node.visits += 1
+                node.AMAF_visits += 1
                 break # root node reached
+
             node.visits += 1
 
             if node.parent.colour == result:
                 node.wins += 1
+
+            # AMAF update: for all child nodes of root, if their move was played in rollout, update AMAF stats
+            for child in root.child_nodes:
+                if child.move in amaf_moves:
+                    child.AMAF_visits += 1
+                    if child.colour == result:
+                        child.AMAF_wins += 1    
 
             node = node.parent
 
