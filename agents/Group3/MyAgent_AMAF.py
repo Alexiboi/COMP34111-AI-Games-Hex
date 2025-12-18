@@ -23,7 +23,7 @@ class MyAgent_AMAF(AgentBase):
     def __init__(self, colour: Colour):
         super().__init__(colour)
         self._choices = [
-            (i, j) for i in range(self._board_size) for j in range(self._board_size)
+            Move(i, j) for i in range(self._board_size) for j in range(self._board_size)
         ]
         
         self.legal_moves_count = self._board_size * self._board_size
@@ -60,25 +60,25 @@ class MyAgent_AMAF(AgentBase):
         if turn == 1:
             pass
 
-        #Remove moves made by other player
         if opp_move is not None:
-            coord = opp_move._x, opp_move._y 
-            if coord in self._choices:
-                self._choices.remove(coord)
-                self.legal_moves_count -= 1
+            for move in self._choices:
+                if move.x == opp_move.x and move.y == opp_move.y:
+                    self._choices.remove(move)
+                    self.legal_moves_count -= 1
+                    break
 
         #Find best move
         best_move = self.MCTS(self._choices,board)
         
         #Remove moves made by agent
         self._choices.remove(best_move)
-        best_move = Move(_x = best_move[0], _y = best_move[1])
+        best_move = Move(_x = best_move.x, _y = best_move.y)
         return best_move
     
 
     def MCTS(self,choices,board):
         root = Node(self.copy_board(board),self.colour, choices, move=None,parent=None)
-        for i in range(10000):
+        for i in range(5000):
             node = root
             board_state = self.copy_board(board)
             path = [node] #Track the path for UCT backpropogation
@@ -88,7 +88,7 @@ class MyAgent_AMAF(AgentBase):
             while node.untried_moves == [] and node.child_nodes:
                 child = node.best_child()
                 move = child.move
-                board_state.set_tile_colour(move[0], move[1], node.colour)  # Use parent node's colour
+                board_state.set_tile_colour(move.x, move.y, node.colour)  # Use parent node's colour
                 node = child
                 path.append(node)
             
@@ -101,7 +101,7 @@ class MyAgent_AMAF(AgentBase):
                 #next_colour = self.opp_colour()
                 next_colour = Colour.BLUE if node.colour == Colour.RED else Colour.RED
                 #print(f"next colour: {next_colour}")
-                board_state.set_tile_colour(move[0], move[1], node.colour)
+                board_state.set_tile_colour(move.x, move.y, node.colour)
                 child = node.expand(self.copy_board(board_state), next_colour, move)
                 node = child
                 path.append(node)
@@ -111,9 +111,9 @@ class MyAgent_AMAF(AgentBase):
 
             rollout_colour = node.colour             
              # --- FIX: Generate all possible moves, remove those already played ---
-            all_possible_moves = [(x, y) for x in range(board.size) for y in range(board.size)]
+            all_possible_moves = [Move(x, y) for x in range(board.size) for y in range(board.size)]
             played_moves = [
-                (x, y)
+                Move(x, y)
                 for x in range(board.size)
                 for y in range(board.size)
                 if board_state.tiles[x][y].colour != None
@@ -125,7 +125,7 @@ class MyAgent_AMAF(AgentBase):
             rollout_trace = []  # list of (move, played_by_colour)
             for legal_move in rollout_moves:
                 #print("board during rollout\n",board_state)
-                board_state.set_tile_colour(legal_move[0], legal_move[1], rollout_colour) #Colour random legal move
+                board_state.set_tile_colour(legal_move.x, legal_move.y, rollout_colour) #Colour random legal move
                 #amaf_moves.add(legal_move)
                 rollout_trace.append((legal_move, rollout_colour))
                 rollout_colour = Colour.RED if rollout_colour == Colour.BLUE else Colour.BLUE

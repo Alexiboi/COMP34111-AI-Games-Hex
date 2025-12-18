@@ -115,7 +115,7 @@ class Node:
         played_moves.add(move)  # Add the move just played
 
         # All possible moves for the board size
-        all_possible_moves = [(x, y) for x in range(next_board.size) for y in range(next_board.size)]
+        all_possible_moves = [Move(x, y) for x in range(next_board.size) for y in range(next_board.size)]
         child_untried_moves = [m for m in all_possible_moves if m not in played_moves]
 
         child = Node(next_board, next_colour, child_untried_moves, move=move, parent=self)
