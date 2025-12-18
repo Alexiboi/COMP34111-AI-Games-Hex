@@ -14,7 +14,7 @@ HEX_DIRS = [
 ]
 safe_first_moves = [Move(0, 1), Move(0, 9), Move(10, 1), Move(10, 9)] 
 
-class MyAgent_dan2(AgentBase):
+class MyAgent_dan2Timed(AgentBase):
     """This class describes the default Hex agent. It will randomly send a
     valid move at each turn, and it will choose to swap with a 50% chance.
 
@@ -23,7 +23,7 @@ class MyAgent_dan2(AgentBase):
     You must implement the make_move method to make the agent functional.
     You CANNOT modify the AgentBase class, otherwise your agent might not function.
     """
-    _iterations: int = 3500
+    _iterations: int = 30000
     _choices: list[Move]
     _board_size: int = 11
     
@@ -33,19 +33,15 @@ class MyAgent_dan2(AgentBase):
         self._choices = [
             Move(i, j) for i in range(self._board_size) for j in range(self._board_size)
         ]
-        self._hexes = self._board_size * self._board_size
-        self.virtual_bridges = []
         
-        self.t_copy = 0.0
-        self.t_select = 0.0
-        self.t_expand = 0.0
-        self.t_sim = 0.0
-        self.t_backprop = 0.0
-        self.rollouts = 0
-        self.forced = 0.0
-        self.others = 0.0
-        self.total = 0.0
-
+        self.time_used = 0.0
+        self.TOTAL_TIME = 300.0
+        self.RESERVE = 2.0
+        self.MIN_BUDGET = 0.03
+        self.MAX_BUDGET = 2.0
+        
+        
+        
         
     #COPY BOARD THROUGH AGENT, move if it is allowed to copy board through Board
     def copy_board(self, board: Board) -> Board:
@@ -72,15 +68,23 @@ class MyAgent_dan2(AgentBase):
         Returns:
             Move: The agent's move
         """
-        print(f"We are moving for colour {self.colour}")
         
         t0 = time.perf_counter()
+        remaining = self.TOTAL_TIME - self.time_used
+        
+        
+
+        
+        
+        print(f"We are moving for colour {self.colour}")
+        
         # TURN 1: we move first (opp_move is None by contract)
         if opp_move == None:
             safe_moves = [m for m in safe_first_moves if m in self._choices]
             opening_move = random.choice(safe_moves)
             safe_move = self.make_legal_move(opening_move, board, self._choices, turn)
             self._choices.remove(safe_move)
+            self.time_used += time.perf_counter() - t0
             return safe_move
 
         # Case 1: opponent played a normal move
@@ -105,6 +109,7 @@ class MyAgent_dan2(AgentBase):
 
                 if is_central or is_strong_edge:
                     proposed_move = Move(-1, -1)
+                    self.time_used += time.perf_counter() - t0
                     return self.make_legal_move(proposed_move, board, self._choices, turn)
         
        
@@ -115,12 +120,18 @@ class MyAgent_dan2(AgentBase):
             safe_move = self.make_legal_move(forced_move, board, self._choices, turn)
             self._choices.remove(safe_move)
             board.set_tile_colour(safe_move.x, safe_move.y, self.colour)
+            self.time_used += time.perf_counter() - t0
             return safe_move
 
         
+        moves_left_us = max(1, (len(self._choices) + 1) // 2)
+
+        base = (remaining - self.RESERVE) / moves_left_us
+
+        budget = min(max(base, self.MIN_BUDGET), self.MAX_BUDGET)
         
         #Find best move
-        best_move = self.MCTS(self._choices, board)
+        best_move = self.MCTS(self._choices, board, deadline = time.perf_counter() + budget)
         
         safe_move = self.make_legal_move(best_move, board, self._choices, turn)
         
@@ -130,49 +141,32 @@ class MyAgent_dan2(AgentBase):
         # update board for bridge detection
         board.set_tile_colour(safe_move.x, safe_move.y, self.colour)
 
-        self.total += time.perf_counter() - t0
-        
-        others = self.total - ( self.t_copy + self.t_select + self.t_expand + self.t_sim + self.t_backprop + self.forced)
 
-        print("\n=== MCTS PROFILE ===")
-        print(f"Rollouts: {self.rollouts}")
-        print(f"copy_board: {self.t_copy/self.total:.2%}")
-        print(f"selection:  {self.t_select/self.total:.2%}")
-        print(f"expansion:  {self.t_expand/self.total:.2%}")
-        print(f"simulation: {self.t_sim/self.total:.2%}")
-        print(f"backprop:   {self.t_backprop/self.total:.2%}")
-        print(f"forced:   {self.forced/self.total:.2%}")
-        print(f"Other:  {others/self.total:.2%}")
-        print("====================\n")
+        self.time_used += time.perf_counter() - t0
+
 
         # only now convert to Move
         return safe_move
     
 
-    def MCTS(self,choices,board) -> Move:
+    def MCTS(self,choices,board, deadline) -> Move:
         root = Node(self.copy_board(board),self.colour, choices, move=None,parent=None)
-        for i in range(self._iterations):
-            self.rollouts += 1
+        while time.perf_counter() < deadline:
             node = root
-            t0 = time.perf_counter()
             board_state = self.copy_board(board)
-            self.t_copy += time.perf_counter() - t0
 
 
             #SELECTION
             #Check all untried nodes and node is non-terminal
-            t0 = time.perf_counter()
             while node.untried_moves == [] and node.child_nodes:
                 child = node.best_child()
                 move = child.move
                 board_state.set_tile_colour(move.x, move.y, node.colour)  # type: ignore # Use parent node's colour
                 node = child
-            self.t_select += time.perf_counter() - t0
             
         
             #EXPANSION
             #Add an extra child
-            t0 = time.perf_counter()    
             if node.untried_moves:
                 move = random.choice(node.untried_moves)
                 #next_colour = self.opp_colour()
@@ -182,11 +176,9 @@ class MyAgent_dan2(AgentBase):
                 
                 child = node.expand(self.copy_board(board_state), next_colour, move)
                 node = child
-            self.t_expand += time.perf_counter() - t0   
             
 
             #SIMULATION
-            t0 = time.perf_counter()
             rollout_colour = node.colour             
              # --- FIX: Generate all possible moves, remove those already played ---
             all_possible_moves = [Move(x, y) for x in range(board.size) for y in range(board.size)]
@@ -216,29 +208,18 @@ class MyAgent_dan2(AgentBase):
             winner = board_state.get_winner()
                 
                 
-            self.t_sim += time.perf_counter() - t0    
                
 
             #BACKPROPAGATION
             # has_ended updates the board_state.winner in the method so they need to be called
             # Could be more efficient
-            t0 = time.perf_counter()
             
             node.backpropagation(winner)
             
-            self.t_backprop += time.perf_counter() - t0
             
         best_child = max(root.child_nodes, key=lambda c: c.visits)
         return best_child.move # type: ignore
-            
-
-    def neighbours(self, x : int, y : int):
-        for dx, dy in HEX_DIRS:
-            nx, ny = x + dx, y + dy
-            if 0 <= nx < self._board_size and 0 <= ny < self._board_size:
-                yield nx, ny
-
-            
+                    
 
 
     def apply_terminal_protocol(self, board: Board, choices: list[Move]) -> Move | None:
