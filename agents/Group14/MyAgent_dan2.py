@@ -14,7 +14,7 @@ HEX_DIRS = [
 ]
 safe_first_moves = [Move(0, 1), Move(0, 9), Move(10, 1), Move(10, 9)] 
 
-class MyAgent(AgentBase):
+class MyAgent_dan2(AgentBase):
     """This class describes the default Hex agent. It will randomly send a
     valid move at each turn, and it will choose to swap with a 50% chance.
 
@@ -23,7 +23,7 @@ class MyAgent(AgentBase):
     You must implement the make_move method to make the agent functional.
     You CANNOT modify the AgentBase class, otherwise your agent might not function.
     """
-    _iterations: int = 5000
+    _iterations: int = 25000
     _choices: list[Move]
     _board_size: int = 11
     
@@ -199,13 +199,20 @@ class MyAgent(AgentBase):
 
             random.shuffle(rollout_moves)
             for legal_move in rollout_moves:
-                board_state.set_tile_colour(legal_move.x, legal_move.y, rollout_colour) #Colour random legal move
-                
-                if board_state.has_ended(rollout_colour):
-                    break
-                                
+                board_state.set_tile_colour(legal_move.x, legal_move.y, rollout_colour) #Colour random legal move     
                 rollout_colour = Colour.RED if rollout_colour == Colour.BLUE else Colour.BLUE
-                
+            
+            if board_state.has_ended(Colour.RED):
+                #print(f"game ended winner is {board_state.get_winner()}")
+                pass  
+            elif board_state.has_ended(Colour.BLUE):
+                #print(f"game ended winner is {board_state.get_winner()}")
+                pass
+            else:
+                #print(f"game ended winner is {board_state.get_winner()}") 
+                pass
+            
+            winner = board_state.get_winner()
                 
                 
             self.t_sim += time.perf_counter() - t0    
@@ -216,47 +223,87 @@ class MyAgent(AgentBase):
             # Could be more efficient
             t0 = time.perf_counter()
             
-            winner = board_state.get_winner()
-
             node.backpropagation(winner)
             
             self.t_backprop += time.perf_counter() - t0
             
         best_child = max(root.child_nodes, key=lambda c: c.visits)
-        #print(best_child.move)
         return best_child.move # type: ignore
-    
-    def set_iterations(self, turn: int, mult_factor : int | float = 1.0):
-        empty_ratio = len(self._choices) / (self._hexes) # type: ignore
-        
-        if turn == 1:
-            self._iterations = int(60000 / 4)
-
-        elif turn <= 4:
-            self._iterations = int(50000 / 4)
-
-        elif turn <= 6:
-            self._iterations = int(35000 / 4)
-
-        elif turn <= 8:
-            self._iterations = int(22500 / 4)
-
-        elif turn <= 10:
-            self._iterations = int(15000 / 4)
-
-        else:
-
-            if empty_ratio > 0.5:
-                self._iterations = int(10000 / 4)
-            elif empty_ratio > 0.35:
-                self._iterations = int(6000 / 4)
-            else:
-                self._iterations = int(4000 / 4)
-                
-        self._iterations = int(self._iterations*mult_factor)
             
-# Helper class to view game tree for debugging
-def print_tree(node, depth=0):
-    print("  " * depth + f"Move: {node.move}, Wins: {node.wins}, Visits: {node.visits}")
-    for child in getattr(node, "child_nodes", []):
-        print_tree(child, depth + 1)
+
+    def neighbours(self, x : int, y : int):
+        for dx, dy in HEX_DIRS:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < self._board_size and 0 <= ny < self._board_size:
+                yield nx, ny
+
+            
+
+
+    def apply_terminal_protocol(self, board: Board, choices: list[Move]) -> Move | None:
+        # 1) Immediate winning move
+        for move in choices:
+            b = self.copy_board(board)
+            b.set_tile_colour(move.x, move.y, self.colour)
+            if b.has_ended(self.colour):
+                return move
+
+        # 2) Immediate blocking move
+        opp = self.opp_colour()
+        for move in choices:
+            b = self.copy_board(board)
+            b.set_tile_colour(move.x, move.y, opp)
+            if b.has_ended(opp):
+                return move
+
+        return None
+
+    def forced_move(self, board : Board, choices : list[Move], opp_move : Move) -> Move | None:
+        
+        terminal_move = self.apply_terminal_protocol(board, choices)
+        if terminal_move is not None:
+            print("FOUND FORCED WIN...MOVING TO TAKE/BLOCK...")
+            return Move(terminal_move.x, terminal_move.y)
+
+
+    def make_legal_move(
+    self,
+    proposed: Move | None,
+    board: Board,
+    choices: list[Move],
+    turn: int, ) -> Move:
+        """
+        Final safety check before returning a move to the engine.
+        Always returns a legal Move.
+        """
+
+        # --- 1. Fallback: no proposal ---
+        if proposed is None:
+            return random.choice(choices)
+
+        # --- 2. Swap move handling ---
+        if proposed.x == -1 and proposed.y == -1:
+            # Swap is only legal on turn 2
+            if turn == 2:
+                return proposed
+            # Otherwise illegal → fallback
+            return random.choice(choices)
+
+        x, y = proposed.x, proposed.y
+        size = board.size
+
+        # --- 3. Bounds check ---
+        if not (0 <= x < size and 0 <= y < size):
+            return random.choice(choices)
+
+        # --- 4. Occupancy check ---
+        if board.tiles[x][y].colour is not None:
+            return random.choice(choices)
+
+        # --- 5. Consistency with choices list ---
+        # (important: engine legality + your internal state)
+        if proposed not in choices:
+            return random.choice(choices)
+
+        # --- 6. Passed all checks ---
+        return proposed
