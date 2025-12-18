@@ -23,7 +23,7 @@ class MyAgent_dan2(AgentBase):
     You must implement the make_move method to make the agent functional.
     You CANNOT modify the AgentBase class, otherwise your agent might not function.
     """
-    _iterations: int = 25000
+    _iterations: int = 30000
     _choices: list[Move]
     _board_size: int = 11
     
@@ -72,12 +72,14 @@ class MyAgent_dan2(AgentBase):
         Returns:
             Move: The agent's move
         """
+        print(f"We are moving for colour {self.colour}")
+        
         t0 = time.perf_counter()
         # TURN 1: we move first (opp_move is None by contract)
         if opp_move == None:
             safe_moves = [m for m in safe_first_moves if m in self._choices]
-            move = random.choice(safe_moves)
-            safe_move = self.make_legal_move(move, board, self._choices, turn)
+            opening_move = random.choice(safe_moves)
+            safe_move = self.make_legal_move(opening_move, board, self._choices, turn)
             self._choices.remove(safe_move)
             return safe_move
 
@@ -107,7 +109,7 @@ class MyAgent_dan2(AgentBase):
         
        
                 
-        forced_move = self.forced_move(board, self._choices, opp_move)
+        forced_move = self.forced_move(board, self._choices)
         
         if forced_move:
             safe_move = self.make_legal_move(forced_move, board, self._choices, turn)
@@ -143,7 +145,6 @@ class MyAgent_dan2(AgentBase):
         print(f"Other:  {others/self.total:.2%}")
         print("====================\n")
 
-        
         # only now convert to Move
         return safe_move
     
@@ -258,7 +259,7 @@ class MyAgent_dan2(AgentBase):
 
         return None
 
-    def forced_move(self, board : Board, choices : list[Move], opp_move : Move) -> Move | None:
+    def forced_move(self, board : Board, choices : list[Move]) -> Move | None:
         
         terminal_move = self.apply_terminal_protocol(board, choices)
         if terminal_move is not None:

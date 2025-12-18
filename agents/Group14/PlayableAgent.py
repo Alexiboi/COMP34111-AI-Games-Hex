@@ -1,7 +1,6 @@
 from random import choice
 
 from agents.Group14.MyAgent_dan import MyAgent_dan
-from agents.TestAgents.utils import make_valid_move
 from src.AgentBase import AgentBase
 from src.Board import Board
 from src.Colour import Colour
@@ -52,5 +51,6 @@ class PlayableAgent(AgentBase):
             return self._agent.make_move(turn, board, opp_move)
             
         x_coord, y_coord = move.strip().split(",")
+        
         
         return Move(_x = int(x_coord), _y = int(y_coord))

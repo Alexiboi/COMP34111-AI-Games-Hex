@@ -72,6 +72,7 @@ class MyAgent_dan(AgentBase):
         Returns:
             Move: The agent's move
         """
+        print(f"!!!We are moving for colour {self.colour}!!!")
         t0 = time.perf_counter()
         # TURN 1: we move first (opp_move is None by contract)
         if opp_move == None:
