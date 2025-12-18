@@ -4,7 +4,7 @@ from src.AgentBase import AgentBase
 from src.Board import Board
 from src.Colour import Colour
 from src.Move import Move
-from .Node import Node
+from .Node3 import Node
 import time
 
 HEX_DIRS = [
@@ -14,7 +14,7 @@ HEX_DIRS = [
 ]
 safe_first_moves = [Move(0, 1), Move(0, 9), Move(10, 1), Move(10, 9)] 
 
-class MyAgent_dan(AgentBase):
+class MyAgent_BP(AgentBase):
     """This class describes the default Hex agent. It will randomly send a
     valid move at each turn, and it will choose to swap with a 50% chance.
 
@@ -23,7 +23,7 @@ class MyAgent_dan(AgentBase):
     You must implement the make_move method to make the agent functional.
     You CANNOT modify the AgentBase class, otherwise your agent might not function.
     """
-    _iterations: int = 10000
+    _iterations: int = 15000
     _choices: list[Move]
     _board_size: int = 11
     
@@ -72,13 +72,14 @@ class MyAgent_dan(AgentBase):
         Returns:
             Move: The agent's move
         """
-        print(f"!!!We are moving for colour {self.colour}!!!")
+        print(f"We are moving for colour {self.colour}")
+        
         t0 = time.perf_counter()
         # TURN 1: we move first (opp_move is None by contract)
         if opp_move == None:
             safe_moves = [m for m in safe_first_moves if m in self._choices]
-            move = random.choice(safe_moves)
-            safe_move = self.make_legal_move(move, board, self._choices, turn)
+            opening_move = random.choice(safe_moves)
+            safe_move = self.make_legal_move(opening_move, board, self._choices, turn)
             self._choices.remove(safe_move)
             return safe_move
 
@@ -108,7 +109,7 @@ class MyAgent_dan(AgentBase):
         
        
                 
-        forced_move = self.forced_move(board, self._choices, opp_move)
+        forced_move = self.forced_move(board, self._choices)
         
         if forced_move:
             safe_move = self.make_legal_move(forced_move, board, self._choices, turn)
@@ -144,7 +145,6 @@ class MyAgent_dan(AgentBase):
         print(f"Other:  {others/self.total:.2%}")
         print("====================\n")
 
-        
         # only now convert to Move
         return safe_move
     
@@ -200,13 +200,18 @@ class MyAgent_dan(AgentBase):
 
             random.shuffle(rollout_moves)
             for legal_move in rollout_moves:
-                board_state.set_tile_colour(legal_move.x, legal_move.y, rollout_colour) #Colour random legal move
-                
-                if board_state.has_ended(rollout_colour):
-                    break
-                                
+                board_state.set_tile_colour(legal_move.x, legal_move.y, rollout_colour) #Colour random legal move     
                 rollout_colour = Colour.RED if rollout_colour == Colour.BLUE else Colour.BLUE
             
+            if board_state.has_ended(Colour.RED):
+                #print(f"game ended winner is {board_state.get_winner()}")
+                pass  
+            elif board_state.has_ended(Colour.BLUE):
+                #print(f"game ended winner is {board_state.get_winner()}")
+                pass
+            else:
+                #print(f"game ended winner is {board_state.get_winner()}") 
+                pass
             
             winner = board_state.get_winner()
                 
@@ -254,7 +259,7 @@ class MyAgent_dan(AgentBase):
 
         return None
 
-    def forced_move(self, board : Board, choices : list[Move], opp_move : Move) -> Move | None:
+    def forced_move(self, board : Board, choices : list[Move]) -> Move | None:
         
         terminal_move = self.apply_terminal_protocol(board, choices)
         if terminal_move is not None:
