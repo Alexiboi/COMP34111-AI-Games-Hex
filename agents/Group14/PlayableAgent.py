@@ -1,6 +1,6 @@
 from random import choice
 
-from agents.Group14.MyAgent_dan import MyAgent_dan
+from agents.Group14.MyAgent import MyAgent
 from src.AgentBase import AgentBase
 from src.Board import Board
 from src.Colour import Colour
@@ -21,7 +21,7 @@ class PlayableAgent(AgentBase):
     _agent: AgentBase
     
     def __init__(self, colour: Colour):
-        self._agent = MyAgent_dan(colour)
+        self._agent = MyAgent(colour)
 
     def make_move(self, turn: int, board: Board, opp_move: Move | None) -> Move:
         """The game engine will call this method to request a move from the agent.

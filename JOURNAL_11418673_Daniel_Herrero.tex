@@ -1,0 +1,652 @@
+\documentclass[11pt,a4paper]{article}
+
+% ====== Packages ======
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{setspace}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{todonotes}
+
+
+\newcommand\mytodo[2][]{\todo[inline, color=green!20, caption={2do}, #1]{
+\begin{minipage}{\textwidth-4pt}#2\end{minipage}}}
+
+\setstretch{1.15}
+
+% ====== Metadata ======
+\title{COMP34111 - Journal Report}
+% \author{%
+%   % Replace with your details
+%   Your Name (Student ID: 12345678)\\
+%   Group: X
+% }
+% \date{Academic Year 2025--26}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section*{Submission Information}
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Course:} COMP34111
+  \item \textbf{Academic Year:} 2025--26
+  \item \textbf{Student Name:} Daniel Herrero
+  \item \textbf{Student ID:} 11418673
+  \item \textbf{Group:} 14
+  \item \textbf{Deadline:} 19th December, 14:00
+  \item \textbf{Note:} Each student must submit their own copy. No anonymous submissions.
+\end{itemize}
+
+\bigskip
+
+\newpage
+% ==========================================================
+% PART 1 – INDIVIDUAL CONTRIBUTION & REFLECTION (20%)
+% ==========================================================
+\section{Individual Contribution and Reflection (20\%)}
+% Explain what you have done and reflect on how the group work is going.
+% Remember: other group members will read this.
+% Focus on:
+% - What you personally did
+% - How you collaborated
+% - What went well / not so well
+% - What you plan to improve
+
+\subsection{Summary of My Contributions}
+% Replace the text below with your own content.
+\mytodo{Conducted extensive research on potential approaches to using a Monte-Carlo Tree Search algorithm to play Hex. Building on this, I researched the UCT algorithm and its usability in MCTS. I also developed a suitable experiment suite to play two agents against each other, allowing us to identify and confirm the suitability of an improvement. This was done by managing the seeds, ensuring games are played fairly, and splitting the starting order midway through all games. I implemented terminal detection in our agent, allowing forced wins/losses to be detected as soon as possible, ensuring a win, or preventing a loss. I created the experiment to test this against the previous version of the agent, and it won the majority of games. I completed a refactor and improvement of the MCTS algorithm, refining data types, ensuring proper modularity, and reducing the risk of bugs in future development. This allowed me to trace the MCTS activity and time allocation, indicating future improvements/bugs. I also tuned the AMAF implementation and experimentally justified its improvement over base MCTS. I then, before submission, experimentally analysed all possible variant agents we created.}
+
+\subsection{Reflection on Group Work}
+% Replace the text below with your own content.
+\mytodo{
+
+Communication within the group was effective and straightforward; everyone understood their tasks, which allowed us to improve our collaboration incrementally and make smarter, more appropriate development decisions. Meetings were organised during our collective free time during the week, which we ran, evaluating and understanding where we were, and then making appropriate design and development decisions based on that. Work was fairly divided, allocating distinct yet equal work to different people. Challenges related to splitting time among other courses were addressed, while taking into account others' necessary commitments and time constraints. We understand that our development process may not have been ideal. Over time, we have developed a more efficient and collaborative working pipeline.
+}
+
+\subsection{Personal Development}
+% Optional but useful reflection sub-section.
+\mytodo{
+During this exercise, I have learned valuable skills, such as incremental CI/CD for software improvements on our agents. I have also improved my organisational skills in assigning tasks, managing optimal workflows, and learning how most appropriately I should speak to, understand, and collaborate with other teammates. I have learned that: working in a team requires a better understanding of others' commitments, abilities and specialities. I also learned that others have different mindsets, and we need to reach an understanding to collaborate most effectively. In the next phase, I plan to contribute more by helping others stay up to date on our development progress and by maintaining strong team morale.
+}
+
+% ==========================================================
+% PART 2 – GROUP MEETING LOG (30%)
+% ==========================================================
+\section{Group Meeting Log (30\%)}
+% This section should record EVERY group meeting.
+% For each meeting include:
+% - Time, date, location
+% - Members present
+% - Apologies for absence
+% - List of tasks agreed (who does what, and by when)
+% - Brief rationale for decisions
+
+% You can either:
+% 1) Duplicate the "Meeting Template" subsection below for each meeting, OR
+% 2) Use the long table that follows for a compact overview.
+
+%
+%
+%       ## MEETING 1 ###
+%
+%
+\mytodo{
+\subsubsection*{Meeting \#1}
+\textbf{Date:} 24/11/2025 \\
+\textbf{Time:} 16:00--17:00 \\
+\textbf{Location:} Kilburn common room
+
+\paragraph{Members Present}
+\begin{itemize}[leftmargin=1.5em]
+  \item Leo Makhnovskiy (11302390)
+  \item Daniel Herrero (11418673)
+  \item Alex Hanna (11333526)
+  \item Alejandro Riggen (11132431)
+  % etc.
+\end{itemize}
+
+\paragraph{Apologies for Absence}
+\begin{itemize}[leftmargin=1.5em]
+  \item None.
+  % If no apologies, write: None.
+\end{itemize}
+
+\paragraph{Tasks Agreed}
+.
+% For clarity, use a table.
+
+\begin{tabularx}{\textwidth}{@{} l l l X @{}}
+\toprule
+\textbf{Task ID} & \textbf{Responsible} & \textbf{Due Date} & \textbf{Description} \\
+\midrule
+T1 & Leo Makhnovskiy & 26/11 & Research viability of Minimax algorithm for this task \\
+T2 & Daniel Herrero & 26/11 & Research viability of MCTS algorithm for this task \\
+T3 & Alex Hanna & 26/11 & Research alternative methods of approaching task \\
+T4 & Alejandro Riggen & 26/11 & Research Hex specific heuristics and evaluation ideas \\
+% Add more rows as needed
+\bottomrule
+\end{tabularx}
+
+\vspace{0.5em}
+
+\paragraph{Rationale for Decisions}\mbox{}
+
+As this was the first group meeting, the priority was to understand the problem and decide how to proceed before starting implementation. We considered several possible ways of dividing the initial work, including beginning with coding immediately or focusing first on researching potential solution methods.
+
+It was agreed that assigning research tasks on different algorithms (such as Minimax, Monte Carlo Tree Search, and alternative approaches), alongside a task on Hex-specific heuristics, would be the most effective use of time. This allowed multiple options to be explored in parallel rather than committing early to a single approach.
+
+Decisions were reached through group discussion, with tasks distributed evenly based on individual interests and prior experience, enabling informed decisions in subsequent meetings.
+}
+
+%
+%
+%       ## MEETING 2 ###
+%
+%
+\mytodo{
+\subsubsection*{Meeting \#2}
+\textbf{Date:} 26/11/2025 \\
+\textbf{Time:} 16:00--18:00 \\
+\textbf{Location:} Kilburn common room
+
+\paragraph{Members Present}
+\begin{itemize}[leftmargin=1.5em]
+  \item Leo Makhnovskiy (11302390)
+  \item Daniel Herrero (11418673)
+  \item Alex Hanna (11333526)
+  \item Alejandro Riggen (11132431)
+  % etc.
+\end{itemize}
+
+\paragraph{Apologies for Absence}
+\begin{itemize}[leftmargin=1.5em]
+  \item None.
+  % If no apologies, write: None.
+\end{itemize}
+
+\paragraph{Tasks Agreed}
+.
+% For clarity, use a table.
+
+\begin{tabularx}{\textwidth}{@{} l l l X @{}}
+\toprule
+\textbf{Task ID} & \textbf{Responsible} & \textbf{Due Date} & \textbf{Description} \\
+\midrule
+T5 & Alejandro Riggen & 01/12 & Implement a basic MCTS skeleton \\
+T6 & Daniel Herrero & 02/12 & Review and select an appropriate UCT selection formula for MCTS \\
+T7 & Alex Hanna & 02/12 & Analyse simple rollout strategies for Hex \\
+T8 & Leo Makhnovskiy & 02/12 & Review integration of MCTS with the provided agent framework \\
+% Add more rows as needed
+\bottomrule
+\end{tabularx}
+
+\vspace{0.5em}
+
+\paragraph{Rationale for Decisions}\mbox{}
+
+Following the initial research phase, the group agreed that Monte Carlo Tree Search was the most appropriate approach for the Hex game. During this meeting, the group considered several options for how to proceed, including attempting a full MCTS implementation immediately or continuing with further algorithmic research.
+
+It was decided instead to take an incremental approach by first implementing a basic MCTS skeleton and reviewing key design choices such as selection policies, rollout strategies, and framework integration. This was considered a lower-risk alternative that would allow early testing and easier extension in later meetings.
+
+Decisions were reached through group discussion, with tasks allocated evenly based on individual interests and prior contributions.
+}
+
+%
+%
+%       ## MEETING 3 ###
+%
+%
+
+\mytodo{
+\subsubsection*{Meeting \#3}
+\textbf{Date:} 02/12/2025 \\
+\textbf{Time:} 16:00--18:00 \\
+\textbf{Location:} Kilburn common room
+
+\paragraph{Members Present}
+\begin{itemize}[leftmargin=1.5em]
+  \item Leo Makhnovskiy (11302390)
+  \item Daniel Herrero (11418673)
+  \item Alex Hanna (11333526)
+  \item Alejandro Riggen (11132431)
+  % etc.
+\end{itemize}
+
+\paragraph{Apologies for Absence}
+\begin{itemize}[leftmargin=1.5em]
+  \item None.
+  % If no apologies, write: None.
+\end{itemize}
+
+\paragraph{Tasks Agreed}
+.
+% For clarity, use a table.
+
+\begin{tabularx}{\textwidth}{@{} l l l X @{}}
+\toprule
+\textbf{Task ID} & \textbf{Responsible} & \textbf{Due Date} & \textbf{Description} \\
+\midrule
+T9 & Daniel Herrero & 04/12 & Design an incremental experimental methodology for evaluating MCTS improvements \\
+T10 & Alex Hanna & 04/12 & Research literature-backed MCTS enhancements relevant to Hex (e.g. AMAF, RAVE) \\
+T11 & Alejandro Riggen & 04/12 & Investigate domain-specific Hex concepts suitable for integration \\
+T12 & Leo Makhnovskiy & 04/12 & Review limitations of vanilla MCTS in Hex and identify key weaknesses \\
+% Add more rows as needed
+\bottomrule
+\end{tabularx}
+
+\vspace{0.5em}
+
+\paragraph{Rationale for Decisions}\mbox{}
+
+After validating a basic MCTS implementation, we discussed how best to improve agent performance. Alternatives considered included immediately implementing multiple enhancements simultaneously or focusing solely on parameter tuning at this stage.
+
+We decided instead to first analyse the limitations of vanilla MCTS in Hex and review established improvements from the literature. This allowed the group to prioritise enhancements with strong empirical support, such as AMAF/RAVE and virtual connections, and to plan their integration in a structured way.
+
+In parallel, an incremental experimental methodology was agreed to ensure that each future enhancement could be evaluated independently. Tasks were allocated through discussion based on individual interests and prior contributions.
+}
+
+%
+%
+%       ## MEETING 4 ###
+%
+%
+
+\mytodo{
+\subsubsection*{Meeting \#4}
+\textbf{Date:} 04/12/2025 \\
+\textbf{Time:} 08:00--10:00 \\
+\textbf{Location:} Kilburn common room
+
+\paragraph{Members Present}
+\begin{itemize}[leftmargin=1.5em]
+  \item Leo Makhnovskiy (11302390)
+  \item Daniel Herrero (11418673)
+  \item Alex Hanna (11333526)
+  \item Alejandro Riggen (11132431)
+  % etc.
+\end{itemize}
+
+\paragraph{Apologies for Absence}
+\begin{itemize}[leftmargin=1.5em]
+  \item None.
+  % If no apologies, write: None.
+\end{itemize}
+
+\paragraph{Tasks Agreed}
+.
+% For clarity, use a table.
+
+\begin{tabularx}{\textwidth}{@{} l l l X @{}}
+\toprule
+\textbf{Task ID} & \textbf{Responsible} & \textbf{Due Date} & \textbf{Description} \\
+\midrule
+T13 & Alex Hanna & 8/12 & Implement detection of immediate terminal outcomes \\
+T14 & Alejandro Riggen & 8/12 & Implement a legality wrapper to ensure all returned moves are valid \\
+T15 & Leo Makhnovskiy & 8/12 & Implement decision rules for prioritising terminal moves over MCTS search \\
+T16 & Daniel Herrero & 9/12 & Create experiments comparing a baseline agent against vanilla MCTS and terminal-aware MCTS \\
+% Add more rows as needed
+\bottomrule
+\end{tabularx}
+
+\vspace{0.5em}
+
+\paragraph{Rationale for Decisions}\mbox{}
+
+After identifying several possible MCTS enhancements, the group discussed which improvement to introduce first. Alternatives considered included implementing statistical heuristics such as AMAF/RAVE or adding domain-specific virtual bridge detection at this stage.
+
+The group chose to prioritise correctness and deterministic tactical awareness before further strengthening the search. This included detecting immediate terminal outcomes (both winning moves and opponent threats), introducing explicit decision rules to prioritise these moves over MCTS search, and adding a legality wrapper to guarantee that all moves returned to the engine are valid under all circumstances.
+
+This approach reduced failure cases caused by stochastic rollouts, edge conditions, and swap handling, and ensured a reliable foundation before introducing more complex statistical enhancements.
+}
+
+%
+%
+%       ## MEETING 5 ###
+%
+%
+
+\mytodo{
+\subsubsection*{Meeting \#5}
+\textbf{Date:} 9/12/2025 \\
+\textbf{Time:} 16:00--18:00 \\
+\textbf{Location:} Kilburn common room
+
+\paragraph{Members Present}
+\begin{itemize}[leftmargin=1.5em]
+  \item Leo Makhnovskiy (11302390)
+  \item Daniel Herrero (11418673)
+  \item Alex Hanna (11333526)
+  \item Alejandro Riggen (11132431)
+  % etc.
+\end{itemize}
+
+\paragraph{Apologies for Absence}
+\begin{itemize}[leftmargin=1.5em]
+  \item None.
+  % If no apologies, write: None.
+\end{itemize}
+
+\paragraph{Tasks Agreed}
+.
+% For clarity, use a table.
+
+\begin{tabularx}{\textwidth}{@{} l l l X @{}}
+\toprule
+\textbf{Task ID} & \textbf{Responsible} & \textbf{Due Date} & \textbf{Description} \\
+\midrule
+T17 & Daniel Herrero& 13/12 & Refactor MCTS backpropagation to record full move traces in preparation for AMAF integration \\
+T18 & Alex Hanna & 13/12 & Implement swap-rule decision logic for turn 2 based on opponent’s opening move  \\
+T19 & Leo Makhnovskiy & 13/12 & Implement a safe opening move policy when playing first \\
+T20 & Alejandro Riggen & 15/12 & Thoroughly test opening and swap handling for consistency against baseline and self play \\
+% Add more rows as needed
+\bottomrule
+\end{tabularx}
+
+\vspace{0.5em}
+
+\paragraph{Rationale for Decisions}\mbox{}
+
+After addressing tactical correctness and legality handling in the previous meeting, the group focused on strengthening early-game decision making and preparing the MCTS implementation for more advanced enhancements. Alternatives considered included relying entirely on MCTS from the opening move or immediately introducing statistical heuristics such as AMAF/RAVE.
+
+The group chose to implement lightweight opening and swap-rule policies to reduce early-game disadvantage and avoid wasting search budget on well-known opening considerations. In parallel, the MCTS backpropagation logic was refactored to record complete move traces, creating the necessary structural support for future AMAF/RAVE integration without altering the selection policy prematurely.
+
+Tasks were allocated to separate early-game behaviour, testing, and MCTS infrastructure changes, ensuring the agent remained robust and extensible.
+}
+
+%
+%
+%       ## MEETING 6 ###
+%
+%
+
+\mytodo{
+\subsubsection*{Meeting \#6}
+\textbf{Date:} 15/12/2025 \\
+\textbf{Time:} 13:00--15:00 \\
+\textbf{Location:} Kilburn common room
+
+\paragraph{Members Present}
+\begin{itemize}[leftmargin=1.5em]
+  \item Leo Makhnovskiy (11302390)
+  \item Daniel Herrero (11418673)
+  \item Alex Hanna (11333526)
+  \item Alejandro Riggen (11132431)
+  % etc.
+\end{itemize}
+
+\paragraph{Apologies for Absence}
+\begin{itemize}[leftmargin=1.5em]
+  \item None.
+  % If no apologies, write: None.
+\end{itemize}
+
+\paragraph{Tasks Agreed}
+.
+% For clarity, use a table.
+
+\begin{tabularx}{\textwidth}{@{} l l l X @{}}
+\toprule
+\textbf{Task ID} & \textbf{Responsible} & \textbf{Due Date} & \textbf{Description} \\
+\midrule
+T21 & Alex Hanna & 16/12 & Integrate AMAF (All Moves As First) statistics into MCTS backpropagation \\
+T22 & Alejandro Riggen & 17/12 & Implement RAVE-style move selection combining UCT and AMAF estimates \\
+T23 & Daniel Herrero & 18/12 & Tune and justify AMAF/RAVE weighting parameters based on literature \\
+T24 & Leo Makhnovskiy & 18/12 & Evaluate the impact of AMAF/RAVE compared to vanilla MCTS through experiments \\
+% Add more rows as needed
+\bottomrule
+\end{tabularx}
+
+\vspace{0.5em}
+
+\paragraph{Rationale for Decisions}\mbox{}
+
+After establishing a stable MCTS agent with reliable early-game behaviour and terminal handling, the group focused on improving search efficiency and decision quality during the mid-game. Alternatives considered included increasing the MCTS iteration budget or introducing additional domain-specific heuristics at this stage.
+
+The group chose to implement the AMAF (All Moves As First) heuristic using a RAVE-style combination of AMAF and UCT statistics. This approach enables information gained during rollouts to be shared across sibling nodes, which is particularly beneficial in large branching-factor games such as Hex.
+
+Tasks were divided to separate AMAF data collection, selection policy integration, parameter tuning, and experimental evaluation, allowing the impact of the enhancement to be isolated and measured reliably.
+}
+
+%
+%
+%       ## MEETING 7 ###
+%
+%
+
+\mytodo{
+\subsubsection*{Meeting \#7}
+\textbf{Date:} 18/12/2025 \\
+\textbf{Time:} 16:00--22:00 \\
+\textbf{Location:} Kilburn common room
+
+\paragraph{Members Present}
+\begin{itemize}[leftmargin=1.5em]
+  \item Leo Makhnovskiy (11302390)
+  \item Daniel Herrero (11418673)
+  \item Alex Hanna (11333526)
+  \item Alejandro Riggen (11132431)
+  % etc.
+\end{itemize}
+
+\paragraph{Apologies for Absence}
+\begin{itemize}[leftmargin=1.5em]
+  \item None.
+  % If no apologies, write: None.
+\end{itemize}
+
+\paragraph{Tasks Agreed}
+.
+% For clarity, use a table.
+
+\begin{tabularx}{\textwidth}{@{} l l l X @{}}
+\toprule
+\textbf{Task ID} & \textbf{Responsible} & \textbf{Due Date} & \textbf{Description} \\
+\midrule
+T25 & Daniel Herrero & 18/12 & Run final evaluation comparing baseline, vanilla MCTS, and enhanced MCTS variants \\
+T26 & Alex Hanna & 18/12 & Analyse experimental results and identify which enhancements had the largest impact \\
+T27 & Alejandro Riggen & 18/12 & Verify parameter settings, iteration budgets, and configuration consistency \\
+T28 & Leo Makhnovskiy & 18/12 & Coordinate report structure and ensure alignment between code, experiments, and write-up \\
+% Add more rows as needed
+\bottomrule
+\end{tabularx}
+
+\vspace{0.5em}
+
+\paragraph{Rationale for Decisions}\mbox{}
+
+As this was the final meeting before submission, the focus shifted from adding new features to validating and consolidating the existing implementation. Alternatives considered included introducing additional heuristics or further tuning, but these were deemed too risky at this late stage.
+
+The group agreed to freeze the agent’s behaviour and prioritise comprehensive evaluation and analysis. Final experiments were used to compare different agent variants and to identify the contribution of each enhancement. In parallel, effort was directed towards ensuring consistency between code, experimental results, and the written report.
+
+This approach minimised risk while ensuring the final submission was well-supported by empirical evidence and clearly documented.
+}
+
+
+\bigskip
+
+
+% ==========================================================
+% PART 3 – BOT METHOD & SIGNATURES (50%)
+% ==========================================================
+\section{Bot Method and Unique Strengths (50\%)}
+% This section is about the QUALITY of the approach you attempted.
+% State:
+% - What method the bot used
+% - Design choices and architecture
+% - Unique aspects that made it strong and powerful
+
+\subsection{Method Overview}
+\mytodo{
+\begin{itemize}[leftmargin=1.5em]
+Our bot is based on Monte Carlo Tree Search enhanced with AMAF(All Moves As First), the core idea is to explore random simulations of the game while biasing early game decisions based on information gathered from previous moves, our bot also has a database of the best starting moves which allows it to have a strong position while not being in position where a swap would affect it, it also has a database of all moves that should always be swapped with (center tiles), an endgame detection system which allows it to instantly know if there is a victory opportunity or defeat threat, we also implemented a dynamic iterations system where most of the time budget is spent early-game to create a strong position.
+
+    At a high level our bot follows the classic MCTS algorithm:
+  \begin{itemize}[leftmargin=1.5em]
+  \item Selection: Traverse the existing search tree using a RAVE-augmented UCB1 score
+  \item Expansion: Add a new child node by playing an untried legal move
+  \item Simulation/Rollout: Play the rest of the game randomly until termination
+  \item Backpropagation: Update both standard MCTS statistics and AMAF statistics
+\end{itemize}
+    The agent maintains a search tree of Node objects. Each node represents a game state reached after a specific legal move, and stores visit counts, win counts, and AMAF statistics for all moves observed in simulations.
+
+    Our agent's architecture uses 2 scripts as well as the ones provided to run the game
+  \begin{itemize}[leftmargin=1.5em]
+  \item MyAgentAMAF.py: controls the MCTS loop and interaction with the game engine
+  \item Node.py: stores tree structure, statistics, and selection logic
+\end{itemize}
+   
+\end{itemize}
+}
+
+\subsection{Technical Details}
+\mytodo{
+Input Representation and Features:
+\begin{itemize}[leftmargin=1.5em]
+  \item The board is represented as a copied Board object to avoid mutating the real game state.
+  \item Moves are represented as (x, y) coordinates via the Move class.
+\end{itemize}
+Each node stores:
+\begin{itemize}[leftmargin=1.5em]
+  \item visits: number of times the node was visited
+  \item wins: number of wins from the parent player’s perspective
+  \item amaf-wins[move]: number of rollouts where that has move led to a win
+  \item amaf-visits[move]: number of rollouts in which a move has appeared
+\end{itemize}
+
+Standard MCTS win rate is calculated with $Quct = \frac{\text{wins}}{\text{visits}}$
+
+While AMAF's is $Qamad = \frac{\text{amaf-wins}}{\text{amaf-visits}}$
+
+These are combined $\text{Score} = (1 - w)\cdot Q_{\text{UCT}} + w \cdot Q_{\text{AMAF}}$ where $w = \frac{n_{\text{AMAF}}}{n_{\text{UCT}} + n_{\text{AMAF}} + c}$
+
+This allows the agent to:
+\begin{itemize}[leftmargin=1.5em]
+  \item Rely more on AMAF early (few visits)
+  \item Gradually transition to true MCTS values as visits increase
+\end{itemize}
+
+\textbf{Simulation Strategy}
+\begin{itemize}[leftmargin=1.5em]
+  \item Rollouts are purely random, alternating player colours
+  \item All moves played during the rollout are recorded along with the colour that played them
+  \item These moves are later used for AMAF updates
+\end{itemize}
+
+\textbf{Backpropagation}
+\begin{itemize}[leftmargin=1.5em]
+  \item Standard MCTS updates increment visits and wins along the path
+  \item AMAF updates credit all moves played later in the simulation as if they were played immediately, provided they are legal from that node
+\end{itemize}
+
+
+\textbf{Evaluation}
+\begin{itemize}[leftmargin=1.5em]
+  \item The bot was evaluated by playing full Hex games against fully random valid moves agent, then a base a MCTS agent, then we kept playing against its previous versions, making sure our changes actually improved performance.
+  \item Performance improvements were observed in early game discovery compared to MCTS.
+\end{itemize}
+
+
+
+}
+
+\subsection{Unique Aspects and Strengths}
+\mytodo{
+\textbf{AMAF Integration}
+\begin{itemize}[leftmargin=1.5em]
+  \item Learn from every move in a simulation, not just the first
+  \item Greatly accelerate learning in large branching-factor games like Hex
+  \item Make strong early decisions even with limited simulations
+\end{itemize}
+
+\textbf{Efficient Early-Game Play}
+\begin{itemize}[leftmargin=1.5em]
+  \item In Hex, early moves strongly influence the entire game
+  \item AMAF allows the bot to rapidly identify influential positions without requiring deep tree exploration
+\end{itemize}
+
+\textbf{Robustness}
+\begin{itemize}[leftmargin=1.5em]
+  \item The bot plays perfect strategy the first 2 turn
+  \item The bot does not rely on handcrafted heuristics or Hex-specific patterns
+  \item All strength comes from simulation and statistics
+  \item This makes the approach robust and adaptable to rule or board-size changes
+\end{itemize}
+
+\textbf{Clear Separation of Concerns}
+\begin{itemize}[leftmargin=1.5em]
+  \item Tree logic is cleanly encapsulated in the Node class
+  \item Game interaction is handled entirely by the agent
+  \item This makes the system easy to extend or modify
+\end{itemize}
+
+\textbf{Budgeting}
+\begin{itemize}[leftmargin=1.5em]
+  \item The bot will skip first 2 turns by just playing perfect strategy to save time on simulations
+  \item The agent will always try to find instant wins or defeats without simulations
+  \item Iterations decrease as the game goes on in order to give budget to early-game plays
+\end{itemize}
+
+\textbf{Stronger Than Naive Baselines}
+\begin{itemize}[leftmargin=1.5em]
+  \item Compared to:
+  \begin{itemize}[leftmargin=1.5em]
+    \item Random agents
+    \item Plain MCTS without AMAF
+  \end{itemize}
+  \item This bot:
+  \begin{itemize}[leftmargin=1.5em]
+    \item Converges faster
+    \item Chooses more consistent opening moves
+    \item Uses simulation data more efficiently
+  \end{itemize}
+\end{itemize}
+
+}
+
+\subsection{Limitations and Possible Improvements}
+\mytodo{
+\textbf{Limitations}
+\begin{itemize}[leftmargin=1.5em]
+  \item Rollouts are fully random, which can be noisy in later game stages
+  \item No explicit exploration term is used in UCB, which may reduce long-term exploration
+  \item Our agent is written python which doesn't allow for many iterations
+ 
+\end{itemize}
+
+\textbf{Possible Improvements}
+\begin{itemize}[leftmargin=1.5em]
+  \item Some features we would add:
+  \begin{itemize}[leftmargin=1.5em]
+    \item Migration to C++
+    \item Tree rerooting
+    \item Virtual bridge detection and protection
+    \item Better way of copying board states such as bit-wise representations.
+   
+  \end{itemize}
+\end{itemize}
+
+}
+
+% ---------- Signatures ----------
+\subsection{Group Member Signatures}
+Each member of the group should sign this section with their name and student ID.
+
+\vspace{1em}
+
+\begin{tabularx}{\textwidth}{@{}p{4cm} p{4cm} X @{}}
+\toprule
+\textbf{Name} & \textbf{Student ID} & \textbf{Signature / Confirmation} \\
+\midrule
+\mytodo{Leo Makhnovskiy} & \mytodo{11302390} & I confirm the above description of the method and my contribution. \\
+\mytodo{Daniel Herrero} & \mytodo{11418673} & I confirm the above description of the method and my contribution. \\
+\mytodo{Alex Hanna} & \mytodo{11333526} & I confirm the above description of the method and my contribution. \\
+\mytodo{Alejandro Riggen} & \mytodo{11132431} & I confirm the above description of the method and my contribution. \\
+% Add more rows as needed
+\bottomrule
+\end{tabularx}
+
+\end{document}

@@ -14,28 +14,28 @@ if __name__ == "__main__":
     parser.add_argument(
         "-p1",
         "--player1",
-        default="agents.Group14.MyAgent_Timed MyAgent_Timed", #"agents.Group14.MyAgent MyAgent"
+        default="agents.Group14.amafTimed_agent2 amafTimed_agent", #"agents.Group14.MyAgent MyAgent"
         type=str,
         help="Specify the player 1 agent, format: agents.GroupX.AgentFile AgentClassName .e.g. agents.Group0.NaiveAgent NaiveAgent",
     )
     parser.add_argument(
         "-p1Name",
         "--player1Name",
-        default="MyAgent_Timed", #"Was Group 14"
+        default="amafTimed_agent2", #"Was Group 14"
         type=str,
         help="Specify the player 1 name",
     )
     parser.add_argument(
         "-p2",
         "--player2",
-        default="agents.Group14.amafTimed_agent amafTimed_agent",
+        default="agents.Group14.amafTimed_agent2_ALEX amafTimed_agent2",
         type=str,
         help="Specify the player 2 agent, format: agents.GroupX.AgentFile AgentClassName .e.g. agents.Group0.NaiveAgent NaiveAgent",
     )
     parser.add_argument(
         "-p2Name",
         "--player2Name",
-        default="amafTimed_agent",
+        default="amafTimed_agent2_ALEX",
         type=str,
         help="Specify the player 2 name",
     )

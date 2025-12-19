@@ -40,33 +40,13 @@ class Node:
         n_uct = child.visits
         k = 50  # typical RAVE bias constant
         w = n_amaf / (n_uct + n_amaf + k)
+        
+        cb = 1.41
+        parent_visits = max(1, self.visits)
+        expl = cb * math.sqrt(math.log(parent_visits) / n_uct)
 
-        return (1 - w) * q_uct + w * q_amaf
+        return (1 - w) * (q_uct + expl) + w * q_amaf
 
-
-        # # AMAF / RAVE value (win rate from AMAF stats)
-        # if child.AMAF_visits > 0:
-        #     q_amaf = child.AMAF_wins / child.AMAF_visits
-        # else:
-        #     q_amaf = 0.0
-
-        # # RAVE weight w based on ratio of AMAF visits to total visits
-        # # w in [0,1]; when AMAF_visits >> visits, w → 1
-        # n_uct = child.visits
-        # n_amaf = child.AMAF_visits
-        # if n_uct + n_amaf > 0:
-        #     w = n_amaf / (n_uct + n_amaf)
-        # else:
-        #     w = 0.0
-
-
-        # c = 0.0  # no exploration term as requested
-
-        # # AMAF / RAVE score
-        # score = (1.0 - w) * q_uct + w * q_amaf
-        # # + c * math.sqrt(math.log(self.visits) / child.visits)  # if you ever re‑enable exploration
-
-        # return score
 
     def best_child(self):
 
@@ -84,9 +64,9 @@ class Node:
                 # means we're at root node
                 if node.colour == result:
                     node.wins += 1
-                    node.amaf_wins += 1
+                    node.AMAF_wins += 1
                 node.visits += 1
-                node.amaf_visits += 1
+                node.AMAF_visits += 1
                 break # root node reached
 
             node.visits += 1
